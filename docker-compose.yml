@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: uptc_energy
       POSTGRES_USER: uptc_user
-      POSTGRES_PASSWORD: uptc_secure_2024
+      POSTGRES_PASSWORD: uptc_password_2024
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/init_db.sql:/docker-entrypoint-initdb.d/init.sql
@@ -28,7 +28,7 @@ services:
       dockerfile: Dockerfile
     container_name: uptc_backend
     environment:
-      DATABASE_URL: postgresql+asyncpg://uptc_user:uptc_secure_2024@database:5432/uptc_energy
+      DATABASE_URL: postgresql+asyncpg://uptc_user:uptc_password_2024@database:5432/uptc_energy
       DEBUG: "true"
       CORS_ORIGINS_STR: "http://hackathon-mono-g1ch4x-4e10a3-77-42-26-173.traefik.me,https://hackathon-mono-g1ch4x-4e10a3-77-42-26-173.traefik.me,http://localhost:3000"
     ports:
