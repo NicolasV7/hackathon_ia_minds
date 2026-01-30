@@ -1,0 +1,13 @@
+# Ignore all files and directories starting with a dot
+.*
+skills/
+
+# But keep these specific dot files if needed
+!.gitignore
+!.*.md
+
+# Common ignores
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
