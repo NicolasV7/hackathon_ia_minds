@@ -57,7 +57,7 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://hackathon-mono-g1ch4x-ece40f-77-42-26-173.traefik.me
     ports:
-      - "3000:3000"
+      - "3001:3000"
     networks:
       - uptc_network
     restart: unless-stopped
