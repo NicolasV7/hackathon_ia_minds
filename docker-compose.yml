@@ -30,7 +30,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://uptc_user:uptc_secure_2024@database:5432/uptc_energy
       DEBUG: "false"
-      CORS_ORIGINS: "https://hackathon-mono-g1ch4x-4e10a3-77-42-26-173.traefik.me,http://localhost:3000"
+      CORS_ORIGINS_STR: "https://hackathon-mono-g1ch4x-4e10a3-77-42-26-173.traefik.me,http://localhost:3000"
     ports:
       - "8000:8000"
     networks:
