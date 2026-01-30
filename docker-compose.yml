@@ -6,9 +6,9 @@ services:
     image: timescale/timescaledb:latest-pg15
     container_name: uptc_database
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-uptc_energy}
-      POSTGRES_USER: ${POSTGRES_USER:-uptc_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-uptc_password_2024}
+      POSTGRES_DB: uptc_energy
+      POSTGRES_USER: uptc_user
+      POSTGRES_PASSWORD: uptc_secure_2024
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/init_db.sql:/docker-entrypoint-initdb.d/init.sql
@@ -16,7 +16,7 @@ services:
       - uptc_network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-uptc_user} -d ${POSTGRES_DB:-uptc_energy}"]
+      test: ["CMD-SHELL", "pg_isready -U uptc_user -d uptc_energy"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,9 +28,9 @@ services:
       dockerfile: Dockerfile
     container_name: uptc_backend
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-uptc_user}:${POSTGRES_PASSWORD:-uptc_password_2024}@database:5432/${POSTGRES_DB:-uptc_energy}
-      - DEBUG=${DEBUG:-false}
-      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      DATABASE_URL: postgresql+asyncpg://uptc_user:uptc_secure_2024@database:5432/uptc_energy
+      DEBUG: "false"
+      CORS_ORIGINS: "https://hackathon-mono-g1ch4x-4e10a3-77-42-26-173.traefik.me,http://localhost:3000"
     ports:
       - "8000:8000"
     networks:
@@ -52,10 +52,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://backend:8000}
+        NEXT_PUBLIC_API_URL: http://backend:8000
     container_name: uptc_frontend
     environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://backend:8000}
+      NEXT_PUBLIC_API_URL: http://backend:8000
     ports:
       - "3000:3000"
     networks:
