@@ -5,9 +5,13 @@ skills/
 # But keep these specific dot files if needed
 !.gitignore
 !.*.md
+!.dockerignore
+!.env.example
 
 # Common ignores
 node_modules/
 *.log
 .DS_Store
 Thumbs.db
+__pycache__/
+*.pyc
