@@ -1,5 +1,6 @@
 """Application configuration using Pydantic Settings"""
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 from functools import lru_cache
 from typing import List
 
@@ -19,8 +20,15 @@ class Settings(BaseSettings):
     DB_MAX_OVERFLOW: int = 10
     DB_ECHO: bool = False
     
-    # CORS
+    # CORS - accepts comma-separated string or list
     CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+    
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
     
     # ML Models
     ML_MODELS_PATH: str = "./ml_models"
