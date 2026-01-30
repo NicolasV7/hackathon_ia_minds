@@ -58,6 +58,8 @@ services:
       NEXT_PUBLIC_API_URL: http://hackathon-mono-g1ch4x-ece40f-77-42-26-173.traefik.me
     ports:
       - "3001:3000"
+    expose:
+      - "3000"
     networks:
       - uptc_network
     restart: unless-stopped
@@ -69,6 +71,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
 
 volumes:
   postgres_data:
