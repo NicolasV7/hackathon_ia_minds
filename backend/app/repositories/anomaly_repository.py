@@ -78,8 +78,8 @@ class AnomalyRepository(BaseRepository[Anomaly, AnomalyCreate, AnomalyUpdate]):
             List of anomalies
         """
         filters = [
-            self.model.timestamp >= start_date,
-            self.model.timestamp <= end_date
+            self.model.anomaly_timestamp >= start_date,
+            self.model.anomaly_timestamp <= end_date
         ]
         
         if sede:
