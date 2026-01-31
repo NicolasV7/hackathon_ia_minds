@@ -18,7 +18,7 @@ services:
       - ./backend/init_db.sql:/docker-entrypoint-initdb.d/01-init.sql
       - ./init-data.sh:/docker-entrypoint-initdb.d/02-init-data.sh
     ports:
-      - "5432:5432"
+      - "5433:5432"
     networks:
       - uptc_network
     restart: unless-stopped
