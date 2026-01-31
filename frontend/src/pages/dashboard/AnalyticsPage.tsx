@@ -53,6 +53,7 @@ export default function AnalyticsPage() {
           getSustainabilityContribution(selectedSede),
           getOptimizationOpportunities(selectedSede),
         ]);
+        console.log('[Analytics] Sector data received:', sectorRes);
         setSedes(sedesData);
         setSectorData(sectorRes);
         setHourlyData(hourlyRes);
@@ -62,7 +63,7 @@ export default function AnalyticsPage() {
         setSustainability(sustRes);
         setOpportunities(oppRes);
       } catch (error) {
-        console.error('Error fetching analytics data:', error);
+        console.error('[Analytics] Error fetching data:', error);
         // Mock data fallback
         setSedes([
           { id: 'tunja', nombre: 'Tunja (Principal)', estudiantes: 18000, lat: 5.5353, lng: -73.3678, consumo_energia: 45000, consumo_agua: 9500, emisiones_co2: 68 },
