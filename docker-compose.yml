@@ -62,13 +62,13 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       args:
-        OPENAI_API_KEY: "${OPENAI_API_KEY}"
+        OPENAI_API_KEY: "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"
     container_name: uptc_backend
     environment:
       DATABASE_URL: postgresql+asyncpg://uptc_user:uptc_password_2024@database:5432/uptc_energy
       DEBUG: "false"
       CORS_ORIGINS_STR: "*"
-      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      OPENAI_API_KEY: "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"
     ports:
       - "8000:8000"
     networks:
@@ -133,19 +133,18 @@ services:
           cpus: '0.25'
           memory: 256M
 
-  # Telegram Bot - Fully configured with OpenAI (optional, only starts if token provided)
+  # Telegram Bot - Fully configured with OpenAI and Telegram Token
   telegram-bot:
     build:
       context: ./telegram_bot
       dockerfile: Dockerfile
       args:
-        OPENAI_API_KEY: "${OPENAI_API_KEY}"
+        OPENAI_API_KEY: "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"
     container_name: uptc_telegram_bot
     environment:
-      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      OPENAI_API_KEY: "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"
+      TELEGRAM_BOT_TOKEN: "8343621647:AAEE5OROMpUI2nOG5aA3YMuttg-zNwWteHM"
       API_BASE_URL: http://backend:8000/api/v1
-      # TELEGRAM_BOT_TOKEN is optional - bot only starts if provided
-      TELEGRAM_BOT_TOKEN: ""
     networks:
       - uptc_network
     restart: unless-stopped
@@ -160,9 +159,7 @@ services:
         reservations:
           cpus: '0.1'
           memory: 128M
-    # Only start if TELEGRAM_BOT_TOKEN is provided
-    entrypoint: >
-      sh -c "if [ -z \"$$TELEGRAM_BOT_TOKEN\" ]; then echo 'TELEGRAM_BOT_TOKEN not set, skipping bot startup'; exit 0; else python app.py; fi"
+    command: ["python", "app.py"]
 
 volumes:
   postgres_data:
