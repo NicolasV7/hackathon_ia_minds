@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     API_V1_STR: str = "/api/v1"
     
-    # Database - SQLite by default
-    DATABASE_URL: str = "sqlite+aiosqlite:///./uptc_energy.db"
+    # Database - SQLite by default (use absolute path in Docker)
+    DATABASE_URL: str = "sqlite+aiosqlite:///app/data/uptc_energy.db"
     DB_POOL_SIZE: int = 20
     DB_MAX_OVERFLOW: int = 10
     DB_ECHO: bool = False

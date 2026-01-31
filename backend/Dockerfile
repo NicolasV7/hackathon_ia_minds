@@ -46,8 +46,8 @@ COPY --chown=appuser:appgroup ./app ./app
 COPY --chown=appuser:appgroup ./ml_models ./ml_models
 COPY --chown=appuser:appgroup ./scripts ./scripts
 
-# Create data directory
-RUN mkdir -p /app/data && chown appuser:appgroup /app/data
+# Create data directory with proper permissions
+RUN mkdir -p /app/data && chmod 777 /app/data
 
 # Environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -55,15 +55,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
     OPENAI_API_KEY=${OPENAI_API_KEY}
 
-# Switch to non-root user
-USER appuser
+# Note: Keep as root for SQLite file permissions
 
 # Expose port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+# Health check - aumentado start-period para dar tiempo a la carga inicial
+HEALTHCHECK --interval=30s --timeout=10s --start-period=300s --retries=5 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run initialization and start application
-CMD sh -c "python scripts/init_sqlite.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+# Run initialization en background y start application inmediatamente
+CMD sh -c "(python scripts/init_sqlite.py &) && uvicorn app.main:app --host 0.0.0.0 --port 8000"

@@ -13,7 +13,7 @@ services:
         OPENAI_API_KEY: "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"
     container_name: uptc_backend
     environment:
-      DATABASE_URL: "sqlite+aiosqlite:///app/data/uptc_energy.db"
+      DATABASE_URL: "sqlite+aiosqlite:////app/data/uptc_energy.db"
       DEBUG: "false"
       CORS_ORIGINS_STR: "*"
       OPENAI_API_KEY: "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"
