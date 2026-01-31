@@ -34,3 +34,4 @@ httpx~=0.25.0
 
 # Telegram Bot (optional)
 python-telegram-bot==20.6
+ 
