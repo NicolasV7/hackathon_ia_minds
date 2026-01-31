@@ -176,15 +176,44 @@ async def get_sector_breakdown(
         total_agua = sede_data["agua"]
         total_co2 = sede_data["co2"]
         
-        # Sector distribution based on typical university patterns
-        sectors = [
-            {"sector": "Laboratorios", "porcentaje": 35},
-            {"sector": "Aulas", "porcentaje": 25},
-            {"sector": "Oficinas", "porcentaje": 15},
-            {"sector": "Comedores", "porcentaje": 12},
-            {"sector": "Auditorios", "porcentaje": 8},
-            {"sector": "Otros", "porcentaje": 5}
-        ]
+        # Sede-specific sector distributions based on each sede's characteristics
+        sede_sectors = {
+            "tunja": [
+                {"sector": "Laboratorios", "porcentaje": 35},  # Sede principal con muchos labs
+                {"sector": "Aulas", "porcentaje": 25},         # Muchas aulas
+                {"sector": "Oficinas", "porcentaje": 15},      # Oficinas administrativas
+                {"sector": "Comedores", "porcentaje": 12},     # Varios comedores
+                {"sector": "Auditorios", "porcentaje": 8},     # Auditorios grandes
+                {"sector": "Otros", "porcentaje": 5}           # Otros espacios
+            ],
+            "duitama": [
+                {"sector": "Laboratorios", "porcentaje": 40},  # Mayor enfasis en labs tecnicos
+                {"sector": "Aulas", "porcentaje": 22},         # Menor proporcion de aulas
+                {"sector": "Oficinas", "porcentaje": 12},      # Menos oficinas
+                {"sector": "Comedores", "porcentaje": 14},     # Mayor proporcion comedores
+                {"sector": "Auditorios", "porcentaje": 7},     # Menos auditorios
+                {"sector": "Otros", "porcentaje": 5}
+            ],
+            "sogamoso": [
+                {"sector": "Laboratorios", "porcentaje": 32},  # Labs de ciencias basicas
+                {"sector": "Aulas", "porcentaje": 28},         # Mayor proporcion de aulas
+                {"sector": "Oficinas", "porcentaje": 14},      # Oficinas docentes
+                {"sector": "Comedores", "porcentaje": 13},     # Comedores
+                {"sector": "Auditorios", "porcentaje": 8},     # Auditorios
+                {"sector": "Otros", "porcentaje": 5}
+            ],
+            "chiquinquira": [
+                {"sector": "Laboratorios", "porcentaje": 28},  # Menos labs
+                {"sector": "Aulas", "porcentaje": 30},         # Mayor proporcion aulas
+                {"sector": "Oficinas", "porcentaje": 18},      # Mas oficinas relativamente
+                {"sector": "Comedores", "porcentaje": 14},     # Comedores
+                {"sector": "Auditorios", "porcentaje": 5},     # Menos auditorios
+                {"sector": "Otros", "porcentaje": 5}
+            ]
+        }
+        
+        # Get sector distribution for the sede
+        sectors = sede_sectors.get(sede.lower(), sede_sectors["tunja"])
         
         breakdown = []
         for sector in sectors:
