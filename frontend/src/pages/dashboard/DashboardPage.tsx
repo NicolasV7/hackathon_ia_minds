@@ -19,15 +19,22 @@ import {
 } from 'recharts';
 import Chatbot from '@/components/Chatbot';
 
-const statCards = [
-  { key: 'sedes_monitoreadas', label: 'Sedes Monitoreadas', icon: Building2, suffix: ' sedes', trend: null },
-  { key: 'promedio_energia', label: 'Promedio Consumo Energia', icon: Zap, suffix: ' kWh/mes', trend: -5.3 },
-  { key: 'promedio_agua', label: 'Promedio Consumo Agua', icon: Droplets, suffix: ' m3/mes', trend: -2.1 },
-  { key: 'alertas_activas', label: 'Alertas Activas', icon: AlertTriangle, suffix: ' alertas', trend: -2 },
-  { key: 'total_emisiones', label: 'Total Emisiones CO2', icon: Cloud, suffix: ' ton/mes', trend: 8.2 },
-  { key: 'huella_carbono', label: 'Huella de Carbono', icon: Cloud, suffix: ' kg CO2/estudiante', trend: 12.5 },
-  { key: 'score_sostenibilidad', label: 'Score Sostenibilidad', icon: Activity, suffix: '/100', trend: -5 },
-  { key: 'indice_eficiencia', label: 'Indice de Eficiencia', icon: Gauge, suffix: ' %', trend: 1.2 },
+  // Calculate trend percentage from trends data
+const calculateTrend = (current: number, previous: number): number => {
+  if (!previous || previous === 0) return 0;
+  return Number(((current - previous) / previous * 100).toFixed(1));
+};
+
+// Stat cards configuration
+const statCardsConfig = [
+  { key: 'sedes_monitoreadas', label: 'Sedes Monitoreadas', icon: Building2, suffix: ' sedes', hasTrend: false },
+  { key: 'promedio_energia', label: 'Promedio Consumo Energia', icon: Zap, suffix: ' kWh/mes', hasTrend: true },
+  { key: 'promedio_agua', label: 'Promedio Consumo Agua', icon: Droplets, suffix: ' m3/mes', hasTrend: true },
+  { key: 'alertas_activas', label: 'Alertas Activas', icon: AlertTriangle, suffix: ' alertas', hasTrend: false },
+  { key: 'total_emisiones', label: 'Total Emisiones CO2', icon: Cloud, suffix: ' ton/mes', hasTrend: true },
+  { key: 'huella_carbono', label: 'Huella de Carbono', icon: Cloud, suffix: ' kg CO2/estudiante', hasTrend: true },
+  { key: 'score_sostenibilidad', label: 'Score Sostenibilidad', icon: Activity, suffix: '/100', hasTrend: false },
+  { key: 'indice_eficiencia', label: 'Indice de Eficiencia', icon: Gauge, suffix: ' %', hasTrend: false },
 ];
 
 export default function DashboardPage() {
@@ -37,6 +44,15 @@ export default function DashboardPage() {
   const [sedes, setSedes] = useState<SedeInfo[]>([]);
   const [selectedSede, setSelectedSede] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [trendsData, setTrendsData] = useState<Record<string, number | null>>({
+    promedio_energia: null,
+    promedio_agua: null,
+    total_emisiones: null,
+    huella_carbono: null,
+    score_sostenibilidad: null,
+    indice_eficiencia: null,
+    alertas_activas: null,
+  });
 
   useEffect(() => {
     async function fetchData() {
@@ -51,6 +67,22 @@ export default function DashboardPage() {
         setTrends(trendsData);
         setAlerts(alertsData);
         setSedes(sedesData);
+        
+        // Calculate trends from data
+        if (trendsData && trendsData.length >= 2) {
+          const last = trendsData[trendsData.length - 1];
+          const prev = trendsData[trendsData.length - 2];
+          
+          setTrendsData({
+            promedio_energia: calculateTrend(last.energia_real, prev.energia_real),
+            promedio_agua: calculateTrend(last.agua_real, prev.agua_real),
+            total_emisiones: calculateTrend(last.co2_real, prev.co2_real),
+            huella_carbono: calculateTrend(last.co2_real, prev.co2_real),
+            score_sostenibilidad: null,
+            indice_eficiencia: null,
+            alertas_activas: null,
+          });
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         // Set mock data on error
@@ -151,33 +183,38 @@ export default function DashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {statCards.map((stat, index) => (
-          <motion.div
-            key={stat.key}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-          >
-            <Card className="stat-card">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <stat.icon className="w-5 h-5 text-primary" />
-                  {stat.trend && (
-                    <div className={`flex items-center gap-1 text-xs ${stat.trend > 0 ? 'text-destructive' : 'text-success'}`}>
-                      {stat.trend > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      {Math.abs(stat.trend)}%
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-                <p className="text-2xl font-bold">
-                  {getKpiValue(stat.key)}
-                  <span className="text-sm font-normal text-muted-foreground">{stat.suffix}</span>
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
+        {statCardsConfig.map((stat, index) => {
+          const trendValue = trendsData[stat.key];
+          const hasTrend = stat.hasTrend && trendValue !== null;
+          
+          return (
+            <motion.div
+              key={stat.key}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <Card className="stat-card">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <stat.icon className="w-5 h-5 text-primary" />
+                    {hasTrend && (
+                      <div className={`flex items-center gap-1 text-xs ${trendValue > 0 ? 'text-destructive' : 'text-success'}`}>
+                        {trendValue > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                        {Math.abs(trendValue)}%
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
+                  <p className="text-2xl font-bold">
+                    {getKpiValue(stat.key)}
+                    <span className="text-sm font-normal text-muted-foreground">{stat.suffix}</span>
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Charts Row */}

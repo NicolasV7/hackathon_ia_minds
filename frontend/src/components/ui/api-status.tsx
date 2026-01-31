@@ -40,8 +40,8 @@ export default function ApiStatus({ className = '' }: ApiStatusProps) {
 
   const getStatusText = () => {
     switch (status) {
-      case 'online': return 'API Online';
-      case 'offline': return 'API Offline (usando datos mock)';
+      case 'online': return 'Sistema Activo';
+      case 'offline': return 'Conectando...';
       case 'checking': return 'Verificando...';
       default: return 'Desconocido';
     }
