@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Building2, Users, Layers, Database, ArrowRight, Zap, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MapaSedes } from '@/components/landing/MapaSedes';
 
 const stats = [
   { icon: Building2, value: '4', label: 'Sedes', color: 'text-primary' },
@@ -124,100 +125,8 @@ export default function LandingPage() {
             </p>
           </div>
           
-          <div>
-            <div className="w-full h-96 bg-gray-800 rounded-xl overflow-hidden relative border border-gray-700">
-              
-              {/* Título del mapa */}
-              <div className="absolute top-4 left-4 bg-black/80 backdrop-blur border border-gray-600 rounded-lg px-3 py-2 z-10">
-                <div className="text-sm font-semibold text-white">Sedes UPTC - Boyacá</div>
-              </div>
-              
-              {/* Puntos interactivos de las sedes */}
-              <div className="absolute inset-0">
-                {/* Sede Tunja - Centro del mapa */}
-                <div className="absolute" style={{ top: '45%', left: '52%', transform: 'translate(-50%, -50%)' }}>
-                  <div className="group relative cursor-pointer z-20">
-                    <div className="w-6 h-6 bg-red-500 border-2 border-white rounded-full shadow-lg hover:scale-125 transition-all duration-200 animate-pulse">
-                    </div>
-                    <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 bg-black/90 backdrop-blur border border-gray-600 rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 min-w-max shadow-xl z-30">
-                      <div className="text-sm font-semibold text-white">🔴 Tunja (Principal)</div>
-                      <div className="text-xs text-gray-300 mt-1">18,000 estudiantes</div>
-                      <div className="text-xs text-gray-300">⚡ 45,000 kWh/mes</div>
-                      <div className="text-xs text-gray-300">💧 9,500 m³/mes</div>
-                      <div className="text-xs text-red-400 font-medium mt-1">Alto consumo</div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Sede Duitama - Norte */}
-                <div className="absolute" style={{ top: '25%', left: '45%', transform: 'translate(-50%, -50%)' }}>
-                  <div className="group relative cursor-pointer z-20">
-                    <div className="w-5 h-5 bg-orange-500 border-2 border-white rounded-full shadow-lg hover:scale-125 transition-all duration-200 animate-pulse">
-                    </div>
-                    <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 bg-black/90 backdrop-blur border border-gray-600 rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 min-w-max shadow-xl z-30">
-                      <div className="text-sm font-semibold text-white">🟠 Duitama</div>
-                      <div className="text-xs text-gray-300 mt-1">5,500 estudiantes</div>
-                      <div className="text-xs text-gray-300">⚡ 18,200 kWh/mes</div>
-                      <div className="text-xs text-gray-300">💧 3,800 m³/mes</div>
-                      <div className="text-xs text-orange-400 font-medium mt-1">Medio-alto</div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Sede Sogamoso - Noreste */}
-                <div className="absolute" style={{ top: '30%', left: '65%', transform: 'translate(-50%, -50%)' }}>
-                  <div className="group relative cursor-pointer z-20">
-                    <div className="w-5 h-5 bg-yellow-500 border-2 border-white rounded-full shadow-lg hover:scale-125 transition-all duration-200 animate-pulse">
-                    </div>
-                    <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 bg-black/90 backdrop-blur border border-gray-600 rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 min-w-max shadow-xl z-30">
-                      <div className="text-sm font-semibold text-white">🟡 Sogamoso</div>
-                      <div className="text-xs text-gray-300 mt-1">6,000 estudiantes</div>
-                      <div className="text-xs text-gray-300">⚡ 15,500 kWh/mes</div>
-                      <div className="text-xs text-gray-300">💧 3,200 m³/mes</div>
-                      <div className="text-xs text-yellow-400 font-medium mt-1">Consumo medio</div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Sede Chiquinquirá - Oeste */}
-                <div className="absolute" style={{ top: '60%', left: '25%', transform: 'translate(-50%, -50%)' }}>
-                  <div className="group relative cursor-pointer z-20">
-                    <div className="w-4 h-4 bg-green-500 border-2 border-white rounded-full shadow-lg hover:scale-125 transition-all duration-200 animate-pulse">
-                    </div>
-                    <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 bg-black/90 backdrop-blur border border-gray-600 rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 min-w-max shadow-xl z-30">
-                      <div className="text-sm font-semibold text-white">🟢 Chiquinquirá</div>
-                      <div className="text-xs text-gray-300 mt-1">2,000 estudiantes</div>
-                      <div className="text-xs text-gray-300">⚡ 6,800 kWh/mes</div>
-                      <div className="text-xs text-gray-300">💧 1,400 m³/mes</div>
-                      <div className="text-xs text-green-400 font-medium mt-1">Bajo consumo</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Leyenda */}
-              <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur border border-gray-600 rounded-lg px-3 py-2 z-10">
-                <div className="text-sm font-semibold text-white mb-2">Consumo energético</div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-xs text-gray-300">
-                    <div className="w-3 h-3 bg-red-500 rounded-full border border-white"></div>
-                    <span>Alto (+40k kWh/mes)</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-300">
-                    <div className="w-3 h-3 bg-orange-500 rounded-full border border-white"></div>
-                    <span>Medio-alto (15-40k)</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-300">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full border border-white"></div>
-                    <span>Medio (10-15k)</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-300">
-                    <div className="w-3 h-3 bg-green-500 rounded-full border border-white"></div>
-                    <span>Bajo (-10k kWh/mes)</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="w-full h-[500px] rounded-xl overflow-hidden border border-border shadow-lg">
+            <MapaSedes className="w-full h-full" />
           </div>
         </div>
       </section>
