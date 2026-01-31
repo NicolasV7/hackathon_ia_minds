@@ -1,18 +1,34 @@
-"""Copied bot entrypoint now available at repo root `telegram_bot` folder.
-This is functionally identical to `backend/telegram_bot/app.py`.
+"""Telegram Bot for UPTC EcoEnergy - Energy Analytics Assistant.
+
+Commands:
+- /start - Welcome message
+- /help - Show available commands
+- /menu - Quick options menu
+- /consumo [sede] - Get current consumption
+- /prediccion [sede] [horas] - Get consumption prediction
+- /anomalias [sede] - Get recent anomalies
+- /recomendaciones [sede] - Get recommendations
 """
 import os
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 import asyncio
+from datetime import datetime, timedelta
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, CallbackQueryHandler, filters
 
+import httpx
 import openai
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# API Configuration
+API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8000/api/v1")
+
+# Sedes configuration
+SEDES = ["Tunja", "Duitama", "Sogamoso", "Chiquinquirá"]
 
 
 KNOWLEDGE_BASE: Dict[str, str] = {
@@ -148,10 +164,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(
-        "Comandos:\n/start - saludo\n/help - esta ayuda\n" 
+    help_text = (
+        "🤖 *Comandos disponibles:*\n\n"
+        "📊 *Consumo y Datos*\n"
+        "• /consumo [sede] - Ver consumo actual\n"
+        "  Ejemplo: `/consumo Tunja`\n\n"
+        "🔮 *Predicciones*\n"
+        "• /prediccion [sede] [horas] - Predicción de consumo\n"
+        "  Ejemplo: `/prediccion Tunja 24`\n\n"
+        "⚠️ *Anomalías*\n"
+        "• /anomalias [sede] - Ver anomalías recientes\n"
+        "  Ejemplo: `/anomalias Duitama`\n\n"
+        "💡 *Recomendaciones*\n"
+        "• /recomendaciones [sede] - Ver recomendaciones\n"
+        "  Ejemplo: `/recomendaciones Sogamoso`\n\n"
+        "📝 *General*\n"
+        "• /menu - Menú de opciones rápidas\n"
+        "• /start - Iniciar el bot\n\n"
         "También puedes enviar preguntas en texto sobre el proyecto."
     )
+    await update.message.reply_text(help_text, parse_mode="Markdown")
 
 
 async def saludar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -228,7 +260,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
 
     prompt = PROMPT_MAP.get(data, data)
-    reply_text = await call_chatgpt(prompt)
+    if prompt:
+        reply_text = await call_chatgpt(prompt)
+    else:
+        reply_text = "No entendí tu solicitud. Por favor, selecciona una opción del menú."
     await query.edit_message_text(reply_text)
 
 
@@ -258,9 +293,276 @@ def main() -> None:
     app.add_handler(CallbackQueryHandler(button_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
+    # Add new energy analytics commands
+    app.add_handler(CommandHandler("consumo", consumo_cmd))
+    app.add_handler(CommandHandler("prediccion", prediccion_cmd))
+    app.add_handler(CommandHandler("anomalias", anomalias_cmd))
+    app.add_handler(CommandHandler("recomendaciones", recomendaciones_cmd))
+
     logger.info("Starting Telegram bot...")
     app.run_polling()
 
 
 if __name__ == "__main__":
     main()
+
+
+async def consumo_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Get current consumption for a sede."""
+    args = context.args
+    sede = args[0] if args else None
+    
+    if not sede:
+        # Show sede selection
+        keyboard = [[InlineKeyboardButton(s, callback_data=f"consumo_{s}")] for s in SEDES]
+        await update.message.reply_text(
+            "Selecciona una sede para ver el consumo:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+    
+    if sede not in SEDES:
+        await update.message.reply_text(
+            f"Sede '{sede}' no válida. Sedes disponibles: {', '.join(SEDES)}"
+        )
+        return
+    
+    await update.message.chat.send_action(action="typing")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{API_BASE_URL}/analytics/dashboard",
+                params={"sede": sede, "days": 1}
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                message = (
+                    f"📊 *Consumo Actual - {sede}*\n\n"
+                    f"⚡ Energía Total: {data.get('total_consumption_kwh', 'N/A')} kWh\n"
+                    f"💧 Agua: {data.get('total_water_m3', 'N/A')} m³\n"
+                    f"🌡️ Temperatura Promedio: {data.get('avg_temperature', 'N/A')}°C\n"
+                    f"👥 Ocupación: {data.get('avg_occupancy', 'N/A')}%\n\n"
+                    f"📈 Puntuación de Eficiencia: {data.get('efficiency_score', 'N/A')}/100"
+                )
+                await update.message.reply_text(message, parse_mode="Markdown")
+            else:
+                await update.message.reply_text(
+                    "No se pudo obtener el consumo actual. Intenta más tarde."
+                )
+    except Exception as e:
+        logger.error(f"Error fetching consumption: {e}")
+        await update.message.reply_text(
+            "Error al conectar con el servidor. Verifica que el API esté disponible."
+        )
+
+
+async def prediccion_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Get consumption prediction for a sede."""
+    args = context.args
+    
+    if not args:
+        await update.message.reply_text(
+            "Uso: /prediccion [sede] [horas]\n"
+            "Ejemplo: /prediccion Tunja 24"
+        )
+        return
+    
+    sede = args[0]
+    horas = int(args[1]) if len(args) > 1 else 24
+    
+    if sede not in SEDES:
+        await update.message.reply_text(
+            f"Sede '{sede}' no válida. Sedes disponibles: {', '.join(SEDES)}"
+        )
+        return
+    
+    if horas < 1 or horas > 168:
+        await update.message.reply_text(
+            "El horizonte de predicción debe estar entre 1 y 168 horas."
+        )
+        return
+    
+    await update.message.chat.send_action(action="typing")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            # Create prediction
+            start_time = datetime.now().isoformat()
+            response = await client.post(
+                f"{API_BASE_URL}/predictions/batch",
+                json={
+                    "sede": sede,
+                    "start_timestamp": start_time,
+                    "horizon_hours": horas
+                }
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                predictions = data.get("predictions", [])
+                
+                if predictions:
+                    total_predicted = sum(p.get("energia_total_kwh", 0) for p in predictions)
+                    avg_confidence = sum(p.get("confidence", 0) for p in predictions) / len(predictions)
+                    
+                    message = (
+                        f"🔮 *Predicción - {sede} ({horas}h)*\n\n"
+                        f"⚡ Consumo Total Previsto: {total_predicted:.2f} kWh\n"
+                        f"📊 Promedio Horario: {total_predicted/horas:.2f} kWh/h\n"
+                        f"🎯 Confianza Promedio: {avg_confidence*100:.1f}%\n\n"
+                        f"_Las predicciones se actualizan automáticamente cada hora._"
+                    )
+                    await update.message.reply_text(message, parse_mode="Markdown")
+                else:
+                    await update.message.reply_text(
+                        "No se generaron predicciones. Intenta más tarde."
+                    )
+            else:
+                await update.message.reply_text(
+                    "No se pudo generar la predicción. Intenta más tarde."
+                )
+    except Exception as e:
+        logger.error(f"Error creating prediction: {e}")
+        await update.message.reply_text(
+            "Error al conectar con el servidor. Verifica que el API esté disponible."
+        )
+
+
+async def anomalias_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Get recent anomalies for a sede."""
+    args = context.args
+    sede = args[0] if args else None
+    
+    if not sede:
+        # Show sede selection
+        keyboard = [[InlineKeyboardButton(s, callback_data=f"anomalias_{s}")] for s in SEDES]
+        await update.message.reply_text(
+            "Selecciona una sede para ver anomalías:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+    
+    if sede not in SEDES:
+        await update.message.reply_text(
+            f"Sede '{sede}' no válida. Sedes disponibles: {', '.join(SEDES)}"
+        )
+        return
+    
+    await update.message.chat.send_action(action="typing")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{API_BASE_URL}/anomalies",
+                params={"sede": sede, "limit": 5}
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                anomalies = data.get("items", [])
+                
+                if anomalies:
+                    message = f"⚠️ *Anomalías Recientes - {sede}*\n\n"
+                    for i, anomaly in enumerate(anomalies[:5], 1):
+                        severity_emoji = {
+                            "critical": "🔴",
+                            "high": "🟠",
+                            "medium": "🟡",
+                            "low": "🔵"
+                        }.get(anomaly.get("severity"), "⚪")
+                        
+                        message += (
+                            f"{i}. {severity_emoji} *{anomaly.get('anomaly_type', 'Desconocido')}*\n"
+                            f"   Sector: {anomaly.get('sector', 'N/A')}\n"
+                            f"   Severidad: {anomaly.get('severity', 'N/A')}\n"
+                            f"   Valor: {anomaly.get('actual_value', 'N/A')} kWh\n"
+                            f"   _{anomaly.get('description', 'Sin descripción')[:100]}..._\n\n"
+                        )
+                    
+                    message += f"_Mostrando {len(anomalies[:5])} de {len(anomalies)} anomalías_"
+                    await update.message.reply_text(message, parse_mode="Markdown")
+                else:
+                    await update.message.reply_text(
+                        f"✅ No se encontraron anomalías recientes en {sede}."
+                    )
+            else:
+                await update.message.reply_text(
+                    "No se pudieron obtener las anomalías. Intenta más tarde."
+                )
+    except Exception as e:
+        logger.error(f"Error fetching anomalies: {e}")
+        await update.message.reply_text(
+            "Error al conectar con el servidor. Verifica que el API esté disponible."
+        )
+
+
+async def recomendaciones_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Get recommendations for a sede."""
+    args = context.args
+    sede = args[0] if args else None
+    
+    if not sede:
+        # Show sede selection
+        keyboard = [[InlineKeyboardButton(s, callback_data=f"recomendaciones_{s}")] for s in SEDES]
+        await update.message.reply_text(
+            "Selecciona una sede para ver recomendaciones:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+    
+    if sede not in SEDES:
+        await update.message.reply_text(
+            f"Sede '{sede}' no válida. Sedes disponibles: {', '.join(SEDES)}"
+        )
+        return
+    
+    await update.message.chat.send_action(action="typing")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{API_BASE_URL}/recommendations",
+                params={"sede": sede, "status": "pending", "limit": 5}
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                recommendations = data if isinstance(data, list) else data.get("items", [])
+                
+                if recommendations:
+                    message = f"💡 *Recomendaciones - {sede}*\n\n"
+                    for i, rec in enumerate(recommendations[:5], 1):
+                        priority_emoji = {
+                            "high": "🔴",
+                            "medium": "🟡",
+                            "low": "🟢"
+                        }.get(rec.get("priority"), "⚪")
+                        
+                        savings = rec.get('potential_savings_kwh', 0)
+                        savings_text = f"💰 Ahorro potencial: {savings:.2f} kWh\n" if savings else ""
+                        
+                        message += (
+                            f"{i}. {priority_emoji} *{rec.get('title', 'Sin título')}*\n"
+                            f"   {savings_text}"
+                            f"   _{rec.get('description', 'Sin descripción')[:100]}..._\n\n"
+                        )
+                    
+                    await update.message.reply_text(message, parse_mode="Markdown")
+                else:
+                    await update.message.reply_text(
+                        f"✅ No hay recomendaciones pendientes para {sede}."
+                    )
+            else:
+                await update.message.reply_text(
+                    "No se pudieron obtener las recomendaciones. Intenta más tarde."
+                )
+    except Exception as e:
+        logger.error(f"Error fetching recommendations: {e}")
+        await update.message.reply_text(
+            "Error al conectar con el servidor. Verifica que el API esté disponible."
+        )
+
+
+

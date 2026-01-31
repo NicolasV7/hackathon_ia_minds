@@ -23,6 +23,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Stage 2: Production
 FROM python:3.12-slim AS production
 
+# Build argument for OpenAI API Key
+ARG OPENAI_API_KEY
+
 # Install curl for healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
@@ -46,7 +49,8 @@ COPY --chown=appuser:appgroup ./init_db.sql ./init_db.sql
 # Environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    OPENAI_API_KEY=${OPENAI_API_KEY}
 
 # Switch to non-root user
 USER appuser

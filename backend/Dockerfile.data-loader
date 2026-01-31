@@ -1,0 +1,26 @@
+# Data Loader Dockerfile - One-time container to populate database
+FROM python:3.12-slim
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy requirements and install
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy data loader script
+COPY scripts/load_consumption_data.py ./load_data.py
+
+# Environment
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    CSV_PATH=/data/consumos_uptc.csv
+
+# Run data loader
+CMD ["python", "load_data.py", "--force"]
