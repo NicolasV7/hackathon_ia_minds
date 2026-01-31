@@ -303,8 +303,7 @@ def main() -> None:
     app.run_polling()
 
 
-if __name__ == "__main__":
-    main()
+    
 
 
 async def consumo_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -498,6 +497,9 @@ async def anomalias_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         )
 
 
+    
+
+
 async def recomendaciones_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Get recommendations for a sede."""
     args = context.args
@@ -563,6 +565,10 @@ async def recomendaciones_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.message.reply_text(
             "Error al conectar con el servidor. Verifica que el API esté disponible."
         )
+
+
+if __name__ == "__main__":
+    main()
 
 
 

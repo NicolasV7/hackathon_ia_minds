@@ -9,14 +9,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      args:
-        OPENAI_API_KEY: "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"
     container_name: uptc_backend
     environment:
       DATABASE_URL: "sqlite+aiosqlite:////app/data/uptc_energy.db"
       DEBUG: "false"
       CORS_ORIGINS_STR: "*"
-      OPENAI_API_KEY: "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"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
     volumes:
       - sqlite_data:/app/data
       - ./consumos_uptc_hackday:/app/data/csv:ro
@@ -50,12 +48,12 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: /api
+        NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
         NEXT_PUBLIC_WS_URL: ws://localhost:8000/ws
     container_name: uptc_frontend
     environment:
-      NEXT_PUBLIC_API_URL: /api
-      NEXT_PUBLIC_WS_URL: ws://localhost:8000/ws
+      NEXT_PUBLIC_API_URL: "http://localhost:8000/api/v1"
+      NEXT_PUBLIC_WS_URL: "ws://localhost:8000/ws"
     ports:
       - "3001:3000"
     networks:
@@ -84,12 +82,10 @@ services:
     build:
       context: ./telegram_bot
       dockerfile: Dockerfile
-      args:
-        OPENAI_API_KEY: "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"
     container_name: uptc_telegram_bot
+    env_file:
+      - ./telegram_bot/.env
     environment:
-      OPENAI_API_KEY: "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"
-      TELEGRAM_BOT_TOKEN: "8343621647:AAEE5OROMpUI2nOG5aA3YMuttg-zNwWteHM"
       API_BASE_URL: http://backend:8000/api/v1
     networks:
       - uptc_network
