@@ -54,6 +54,9 @@ async def init_database():
     # Preparar datos
     df = df.rename(columns={'año': 'ano'})
     
+    # Convertir timestamp a datetime
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    
     # Mapear columnas necesarias
     columns_needed = [
         'timestamp', 'sede', 'hora', 'dia_semana', 'mes', 'ano',
