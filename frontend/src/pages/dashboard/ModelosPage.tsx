@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, CheckCircle, Boxes } from 'lucide-react';
+import { CheckCircle, Boxes } from 'lucide-react';
 import { getModelMetrics, getModelPredictions, type ModelMetrics } from '@/services/api';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -185,65 +185,64 @@ export default function ModelosPage() {
         </Card>
       </div>
 
-      {/* Technical Details */}
-      <Card className="chart-container">
+        {/* Technical Details */}
+      <Card className="chart-container" key={`technical-details-${selectedModel}`}>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-lg">Detalles Tecnicos</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              Detalles Tecnicos
+              <span className="text-xs font-normal text-muted-foreground bg-secondary px-2 py-1 rounded">
+                {selectedModel}
+              </span>
+            </CardTitle>
             <p className="text-sm text-muted-foreground">Configuracion y caracteristicas del modelo seleccionado</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger className="w-40">
-                <SelectValue>{selectedModel}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="XGBoost">XGBoost</SelectItem>
-                <SelectItem value="Prophet">Prophet</SelectItem>
-                <SelectItem value="LSTM">LSTM</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" className="gap-2">
-              <RefreshCw className="w-4 h-4" />
-              Reentrenar
-            </Button>
-          </div>
+          <Select value={selectedModel} onValueChange={setSelectedModel}>
+            <SelectTrigger className="w-40">
+              <SelectValue>{selectedModel}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="XGBoost">XGBoost</SelectItem>
+              <SelectItem value="Prophet">Prophet</SelectItem>
+              <SelectItem value="LSTM">LSTM</SelectItem>
+            </SelectContent>
+          </Select>
         </CardHeader>
         <CardContent>
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Left Column - General Info & Hyperparameters */}
-            <div className="space-y-6">
+            <div className="space-y-6" key={`general-info-${selectedModel}`}>
               <div>
                 <h4 className="font-medium mb-4 flex items-center gap-2">
                   Informacion General
                 </h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="p-3 rounded-lg bg-secondary/50">
+                  <div className="p-3 rounded-lg bg-secondary/50" key={`version-${selectedModel}`}>
                     <p className="text-muted-foreground mb-1">Version</p>
-                    <p className="font-mono">{selectedModelData?.version}</p>
+                    <p className="font-mono">{selectedModelData?.version || '-'}</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-secondary/50">
+                  <div className="p-3 rounded-lg bg-secondary/50" key={`framework-${selectedModel}`}>
                     <p className="text-muted-foreground mb-1">Framework</p>
-                    <p className="font-mono">{selectedModelData?.framework}</p>
+                    <p className="font-mono">{selectedModelData?.framework || '-'}</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-secondary/50">
+                  <div className="p-3 rounded-lg bg-secondary/50" key={`fecha-${selectedModel}`}>
                     <p className="text-muted-foreground mb-1">Fecha entrenamiento</p>
-                    <p className="font-mono">{selectedModelData?.fecha_entrenamiento}</p>
+                    <p className="font-mono">{selectedModelData?.fecha_entrenamiento || '-'}</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-secondary/50">
+                  <div className="p-3 rounded-lg bg-secondary/50" key={`datos-${selectedModel}`}>
                     <p className="text-muted-foreground mb-1">Datos de entrenamiento</p>
-                    <p className="font-mono">{selectedModelData?.datos_entrenamiento?.toLocaleString()} registros</p>
+                    <p className="font-mono">{selectedModelData?.datos_entrenamiento?.toLocaleString() || '-'} registros</p>
                   </div>
                 </div>
               </div>
 
-              <div>
+              <div key={`hiperparametros-${selectedModel}`}>
                 <h4 className="font-medium mb-4 flex items-center gap-2">
                   Hiperparametros
                 </h4>
                 <div className="space-y-2">
                   {selectedModelData?.hiperparametros && Object.entries(selectedModelData.hiperparametros).map(([key, value]) => (
-                    <div key={key} className="flex justify-between py-2 border-b border-border/50 text-sm">
+                    <div key={`${selectedModel}-${key}`} className="flex justify-between py-2 border-b border-border/50 text-sm">
                       <span className="font-mono text-muted-foreground">{key}</span>
                       <span className="font-mono font-medium">{String(value)}</span>
                     </div>
@@ -253,24 +252,25 @@ export default function ModelosPage() {
             </div>
 
             {/* Right Column - Feature Importance */}
-            <div>
+            <div key={`features-${selectedModel}`}>
               <h4 className="font-medium mb-4 flex items-center gap-2">
                 Features Importantes
               </h4>
               <div className="space-y-3">
                 {selectedModelData?.feature_importance && Object.entries(selectedModelData.feature_importance)
                   .sort(([, a], [, b]) => (b as number) - (a as number))
-                  .map(([feature, importance]) => (
-                    <div key={feature} className="space-y-1">
+                  .map(([feature, importance], index) => (
+                    <div key={`${selectedModel}-${feature}`} className="space-y-1">
                       <div className="flex justify-between text-sm">
                         <span className="font-mono">{feature}</span>
                         <span className="font-medium">{((importance as number) * 100).toFixed(0)}%</span>
                       </div>
                       <div className="h-2 bg-secondary rounded-full overflow-hidden">
                         <motion.div
+                          key={`bar-${selectedModel}-${feature}`}
                           initial={{ width: 0 }}
                           animate={{ width: `${(importance as number) * 100}%` }}
-                          transition={{ duration: 0.5 }}
+                          transition={{ duration: 0.5, delay: index * 0.1 }}
                           className="h-full bg-primary rounded-full"
                         />
                       </div>
