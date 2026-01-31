@@ -1,6 +1,5 @@
-"""Consumption records model for TimescaleDB"""
+"""Consumption records model for SQLite"""
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Index, Text
-from sqlalchemy.dialects.postgresql import JSONB
 from datetime import datetime
 from app.core.database import Base
 

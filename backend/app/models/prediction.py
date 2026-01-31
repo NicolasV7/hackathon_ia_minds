@@ -1,6 +1,5 @@
 """Prediction records model"""
-from sqlalchemy import Column, Integer, Float, DateTime, String, Boolean
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, Integer, Float, DateTime, String, Boolean, Text
 from datetime import datetime
 from app.core.database import Base
 
@@ -33,7 +32,7 @@ class Prediction(Base):
     # Model metadata
     model_version = Column(String(50), default="1.0.0")
     model_type = Column(String(50), default="xgboost")
-    features_used = Column(JSONB)  # Store feature names and values
+    features_used = Column(Text)  # Store feature names and values as JSON string
     
     # Horizon (hours ahead)
     horizon_hours = Column(Integer)

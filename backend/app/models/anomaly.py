@@ -1,6 +1,5 @@
 """Anomaly detection records model"""
 from sqlalchemy import Column, Integer, Float, DateTime, String, Boolean, Text, Index
-from sqlalchemy.dialects.postgresql import JSONB
 from datetime import datetime
 from app.core.database import Base
 
@@ -52,7 +51,7 @@ class Anomaly(Base):
     detector_version = Column(String(20), default="1.0.0")
     
     # Additional context
-    context_data = Column(JSONB)  # Store relevant context (temperature, occupancy, etc.)
+    context_data = Column(Text)  # Store relevant context as JSON string
     
     # Status tracking
     status = Column(String(20), default="open")  # open, acknowledged, resolved, false_positive

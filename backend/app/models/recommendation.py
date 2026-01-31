@@ -1,6 +1,5 @@
 """Recommendations model"""
-from sqlalchemy import Column, Integer, Float, DateTime, String, Boolean, Text, Index, ARRAY
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, Integer, Float, DateTime, String, Boolean, Text, Index
 from datetime import datetime
 from app.core.database import Base
 
@@ -41,10 +40,10 @@ class Recommendation(Base):
     payback_period_months = Column(Integer)
     
     # Actions (stored as JSON array)
-    actions = Column(JSONB)  # List of specific actions
+    actions = Column(Text)  # List of specific actions as JSON string
     
     # Source tracking
-    generated_from_anomalies = Column(JSONB)  # Array of anomaly IDs
+    generated_from_anomalies = Column(Text)  # Array of anomaly IDs as JSON string
     generation_method = Column(String(50))  # rule_based, llm_enhanced
     model_version = Column(String(20))
     
