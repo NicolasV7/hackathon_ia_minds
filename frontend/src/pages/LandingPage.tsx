@@ -344,7 +344,7 @@ export default function LandingPage() {
                 Equipo de Desarrollo
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Estudiantes de Ingenieria de Sistemas de la UPTC comprometidos con la innovacion y la sostenibilidad
+                Estudiantes de Ingenieria de Sistemas de la San Buenaventura de Cali comprometidos con la innovacion y la sostenibilidad
               </p>
             </header>
 
