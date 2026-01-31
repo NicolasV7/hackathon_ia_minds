@@ -273,8 +273,9 @@ export async function getCorrelationMatrix(sede: string): Promise<{ variables: s
 }
 
 // GET /api/v1/analytics/academic-periods - Get consumption by academic period
-export async function getAcademicPeriodConsumption(): Promise<{ periodo: string; energia: number; agua: number; co2: number }[]> {
-  return apiRequest('/api/v1/analytics/academic-periods', {}, () => getMockAcademicPeriods());
+export async function getAcademicPeriodConsumption(sede?: string): Promise<{ periodo: string; energia: number; agua: number; co2: number }[]> {
+  const endpoint = sede ? `/api/v1/analytics/academic-periods?sede=${sede}` : '/api/v1/analytics/academic-periods';
+  return apiRequest(endpoint, {}, () => getMockAcademicPeriods());
 }
 
 // GET /api/v1/optimization/opportunities - Get optimization opportunities

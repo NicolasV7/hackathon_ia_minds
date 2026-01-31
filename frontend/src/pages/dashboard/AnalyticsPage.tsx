@@ -53,7 +53,7 @@ export default function AnalyticsPage() {
           getSectorBreakdown(selectedSede),
           getHourlyPatterns(selectedSede, selectedSector),
           getCorrelationMatrix(selectedSede),
-          getAcademicPeriodConsumption(),
+          getAcademicPeriodConsumption(selectedSede),
           getParetoAnalysis(selectedSede),
           getSustainabilityContribution(selectedSede),
           getOptimizationOpportunities(selectedSede),
