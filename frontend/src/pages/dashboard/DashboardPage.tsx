@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   Building2,
   Zap,
@@ -10,31 +9,38 @@ import {
   AlertTriangle,
   Activity,
   Gauge,
+  ArrowRight,
+  RefreshCw,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { getDashboardKPIs, getConsumptionTrends, getUnresolvedAnomalies, getSedesInfo, type DashboardKPIs, type ConsumptionTrend, type Anomaly, type SedeInfo } from '@/services/api';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  AreaChart, Area,
 } from 'recharts';
 import Chatbot from '@/components/Chatbot';
 
-  // Calculate trend percentage from trends data
+// Calculate trend percentage from trends data
 const calculateTrend = (current: number, previous: number): number => {
   if (!previous || previous === 0) return 0;
   return Number(((current - previous) / previous * 100).toFixed(1));
 };
 
-// Stat cards configuration
-const statCardsConfig = [
-  { key: 'sedes_monitoreadas', label: 'Sedes Monitoreadas', icon: Building2, suffix: ' sedes', hasTrend: false },
-  { key: 'promedio_energia', label: 'Promedio Consumo Energia', icon: Zap, suffix: ' kWh/mes', hasTrend: true },
-  { key: 'promedio_agua', label: 'Promedio Consumo Agua', icon: Droplets, suffix: ' m3/mes', hasTrend: true },
-  { key: 'alertas_activas', label: 'Alertas Activas', icon: AlertTriangle, suffix: ' alertas', hasTrend: false },
-  { key: 'total_emisiones', label: 'Total Emisiones CO2', icon: Cloud, suffix: ' ton/mes', hasTrend: true },
-  { key: 'huella_carbono', label: 'Huella de Carbono', icon: Cloud, suffix: ' kg CO2/estudiante', hasTrend: true },
-  { key: 'score_sostenibilidad', label: 'Score Sostenibilidad', icon: Activity, suffix: '/100', hasTrend: false },
-  { key: 'indice_eficiencia', label: 'Indice de Eficiencia', icon: Gauge, suffix: ' %', hasTrend: false },
+// KPI card configuration with semantic grouping
+const primaryKPIs = [
+  { key: 'promedio_energia', label: 'Consumo Energia', icon: Zap, suffix: 'kWh', color: 'text-amber-400', hasTrend: true },
+  { key: 'promedio_agua', label: 'Consumo Agua', icon: Droplets, suffix: 'm3', color: 'text-sky-400', hasTrend: true },
+  { key: 'total_emisiones', label: 'Emisiones CO2', icon: Cloud, suffix: 'ton', color: 'text-emerald-400', hasTrend: true },
+  { key: 'alertas_activas', label: 'Alertas Activas', icon: AlertTriangle, suffix: '', color: 'text-rose-400', hasTrend: false },
+];
+
+const secondaryKPIs = [
+  { key: 'sedes_monitoreadas', label: 'Sedes', icon: Building2, suffix: '' },
+  { key: 'huella_carbono', label: 'Huella Carbono', icon: Cloud, suffix: 'kg/est' },
+  { key: 'score_sostenibilidad', label: 'Score', icon: Activity, suffix: '/100' },
+  { key: 'indice_eficiencia', label: 'Eficiencia', icon: Gauge, suffix: '%' },
 ];
 
 export default function DashboardPage() {
@@ -44,374 +50,512 @@ export default function DashboardPage() {
   const [sedes, setSedes] = useState<SedeInfo[]>([]);
   const [selectedSede, setSelectedSede] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [trendsData, setTrendsData] = useState<Record<string, number | null>>({
     promedio_energia: null,
     promedio_agua: null,
     total_emisiones: null,
     huella_carbono: null,
-    score_sostenibilidad: null,
-    indice_eficiencia: null,
-    alertas_activas: null,
   });
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [kpisData, trendsData, alertsData, sedesData] = await Promise.all([
-          getDashboardKPIs(selectedSede === 'all' ? undefined : selectedSede),
-          getConsumptionTrends(selectedSede === 'all' ? 'tunja' : selectedSede),
-          getUnresolvedAnomalies(),
-          getSedesInfo(),
-        ]);
-        setKpis(kpisData);
-        setTrends(trendsData);
-        setAlerts(alertsData);
-        setSedes(sedesData);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [kpisData, trendsData, alertsData, sedesData] = await Promise.all([
+        getDashboardKPIs(selectedSede === 'all' ? undefined : selectedSede),
+        getConsumptionTrends(selectedSede === 'all' ? 'tunja' : selectedSede),
+        getUnresolvedAnomalies(),
+        getSedesInfo(),
+      ]);
+      setKpis(kpisData);
+      setTrends(trendsData);
+      setAlerts(alertsData);
+      setSedes(sedesData);
+      setLastUpdate(new Date());
+      
+      if (trendsData && trendsData.length >= 2) {
+        const last = trendsData[trendsData.length - 1];
+        const prev = trendsData[trendsData.length - 2];
         
-        // Calculate trends from data
-        if (trendsData && trendsData.length >= 2) {
-          const last = trendsData[trendsData.length - 1];
-          const prev = trendsData[trendsData.length - 2];
-          
-          setTrendsData({
-            promedio_energia: calculateTrend(last.energia_real, prev.energia_real),
-            promedio_agua: calculateTrend(last.agua_real, prev.agua_real),
-            total_emisiones: calculateTrend(last.co2_real, prev.co2_real),
-            huella_carbono: calculateTrend(last.co2_real, prev.co2_real),
-            score_sostenibilidad: null,
-            indice_eficiencia: null,
-            alertas_activas: null,
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        // Set mock data on error
-        setKpis({
-          sedes_monitoreadas: 4,
-          promedio_energia: 21400,
-          promedio_agua: 4200,
-          huella_carbono: 3.98,
-          score_sostenibilidad: 78,
-          alertas_activas: 5,
-          total_emisiones: 125.3,
-          indice_eficiencia: 9.2,
+        setTrendsData({
+          promedio_energia: calculateTrend(last.energia_real, prev.energia_real),
+          promedio_agua: calculateTrend(last.agua_real, prev.agua_real),
+          total_emisiones: calculateTrend(last.co2_real, prev.co2_real),
+          huella_carbono: calculateTrend(last.co2_real, prev.co2_real),
         });
-        setTrends([
-          { fecha: 'Ene', energia_real: 28000, energia_predicha: 27500, agua_real: 5800, agua_predicha: 5600, co2_real: 42, co2_predicha: 41 },
-          { fecha: 'Feb', energia_real: 30000, energia_predicha: 29800, agua_real: 6200, agua_predicha: 6000, co2_real: 45, co2_predicha: 44 },
-          { fecha: 'Mar', energia_real: 32000, energia_predicha: 31500, agua_real: 6500, agua_predicha: 6300, co2_real: 48, co2_predicha: 47 },
-          { fecha: 'Abr', energia_real: 35000, energia_predicha: 34000, agua_real: 7000, agua_predicha: 6800, co2_real: 52, co2_predicha: 51 },
-          { fecha: 'May', energia_real: 38000, energia_predicha: 37500, agua_real: 7500, agua_predicha: 7300, co2_real: 57, co2_predicha: 56 },
-          { fecha: 'Jun', energia_real: 42000, energia_predicha: 41000, agua_real: 8200, agua_predicha: 8000, co2_real: 63, co2_predicha: 62 },
-          { fecha: 'Jul', energia_real: 45000, energia_predicha: 44500, agua_real: 8800, agua_predicha: 8600, co2_real: 68, co2_predicha: 67 },
-          { fecha: 'Ago', energia_real: 48000, energia_predicha: 47000, agua_real: 9200, agua_predicha: 9000, co2_real: 72, co2_predicha: 71 },
-          { fecha: 'Sep', energia_real: 50000, energia_predicha: 49500, agua_real: 9500, agua_predicha: 9300, co2_real: 75, co2_predicha: 74 },
-        ]);
-        setAlerts([
-          { id: '1', sede: 'Tunja', sector: 'Comedores', fecha: '2025-01-30 08:30', tipo: 'anomalia', severidad: 'critica', estado: 'pendiente', descripcion: 'Consumo anomalo detectado: +45% respecto al baseline', valor_detectado: 4500, valor_esperado: 3100 },
-          { id: '2', sede: 'Duitama', sector: 'Laboratorios', fecha: '2025-01-30 07:15', tipo: 'desbalance', severidad: 'alta', estado: 'revisada', descripcion: 'Desbalance en consumo entre horario laboral y nocturno', valor_detectado: 1200, valor_esperado: 800 },
-          { id: '3', sede: 'Sogamoso', sector: 'Oficinas', fecha: '2025-01-29 14:20', tipo: 'anomalia', severidad: 'media', estado: 'pendiente', descripcion: 'Consumo elevado detectado en fin de semana', valor_detectado: 890, valor_esperado: 200 },
-        ]);
-        setSedes([
-          { id: 'tunja', nombre: 'Tunja (Principal)', estudiantes: 18000, lat: 5.5353, lng: -73.3678, consumo_energia: 45000, consumo_agua: 9500, emisiones_co2: 68 },
-          { id: 'duitama', nombre: 'Duitama', estudiantes: 5500, lat: 5.8267, lng: -73.0333, consumo_energia: 18200, consumo_agua: 3800, emisiones_co2: 27 },
-          { id: 'sogamoso', nombre: 'Sogamoso', estudiantes: 6000, lat: 5.7147, lng: -72.9314, consumo_energia: 15500, consumo_agua: 3200, emisiones_co2: 23 },
-          { id: 'chiquinquira', nombre: 'Chiquinquira', estudiantes: 2000, lat: 5.6167, lng: -73.8167, consumo_energia: 6800, consumo_agua: 1400, emisiones_co2: 10 },
-        ]);
-      } finally {
-        setLoading(false);
       }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      // Fallback mock data
+      setKpis({
+        sedes_monitoreadas: 4,
+        promedio_energia: 21400,
+        promedio_agua: 4200,
+        huella_carbono: 3.98,
+        score_sostenibilidad: 78,
+        alertas_activas: 5,
+        total_emisiones: 125.3,
+        indice_eficiencia: 9.2,
+      });
+      setTrends([
+        { fecha: 'Ene', energia_real: 28000, energia_predicha: 27500, agua_real: 5800, agua_predicha: 5600, co2_real: 42, co2_predicha: 41 },
+        { fecha: 'Feb', energia_real: 30000, energia_predicha: 29800, agua_real: 6200, agua_predicha: 6000, co2_real: 45, co2_predicha: 44 },
+        { fecha: 'Mar', energia_real: 32000, energia_predicha: 31500, agua_real: 6500, agua_predicha: 6300, co2_real: 48, co2_predicha: 47 },
+        { fecha: 'Abr', energia_real: 35000, energia_predicha: 34000, agua_real: 7000, agua_predicha: 6800, co2_real: 52, co2_predicha: 51 },
+        { fecha: 'May', energia_real: 38000, energia_predicha: 37500, agua_real: 7500, agua_predicha: 7300, co2_real: 57, co2_predicha: 56 },
+        { fecha: 'Jun', energia_real: 42000, energia_predicha: 41000, agua_real: 8200, agua_predicha: 8000, co2_real: 63, co2_predicha: 62 },
+        { fecha: 'Jul', energia_real: 45000, energia_predicha: 44500, agua_real: 8800, agua_predicha: 8600, co2_real: 68, co2_predicha: 67 },
+      ]);
+      setAlerts([
+        { id: '1', sede: 'Tunja', sector: 'Comedores', fecha: '2025-01-30 08:30', tipo: 'anomalia', severidad: 'critica', estado: 'pendiente', descripcion: 'Consumo 45% superior al baseline detectado', valor_detectado: 4500, valor_esperado: 3100 },
+        { id: '2', sede: 'Duitama', sector: 'Laboratorios', fecha: '2025-01-30 07:15', tipo: 'desbalance', severidad: 'alta', estado: 'revisada', descripcion: 'Desbalance entre horario laboral y nocturno', valor_detectado: 1200, valor_esperado: 800 },
+        { id: '3', sede: 'Sogamoso', sector: 'Oficinas', fecha: '2025-01-29 14:20', tipo: 'anomalia', severidad: 'media', estado: 'pendiente', descripcion: 'Consumo elevado en fin de semana', valor_detectado: 890, valor_esperado: 200 },
+      ]);
+      setSedes([
+        { id: 'tunja', nombre: 'Tunja (Principal)', estudiantes: 18000, lat: 5.5353, lng: -73.3678, consumo_energia: 45000, consumo_agua: 9500, emisiones_co2: 68 },
+        { id: 'duitama', nombre: 'Duitama', estudiantes: 5500, lat: 5.8267, lng: -73.0333, consumo_energia: 18200, consumo_agua: 3800, emisiones_co2: 27 },
+        { id: 'sogamoso', nombre: 'Sogamoso', estudiantes: 6000, lat: 5.7147, lng: -72.9314, consumo_energia: 15500, consumo_agua: 3200, emisiones_co2: 23 },
+        { id: 'chiquinquira', nombre: 'Chiquinquira', estudiantes: 2000, lat: 5.6167, lng: -73.8167, consumo_energia: 6800, consumo_agua: 1400, emisiones_co2: 10 },
+      ]);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [selectedSede]);
 
-  const getKpiValue = (key: string): string => {
+  const formatValue = (key: string): string => {
     if (!kpis) return '-';
     const value = kpis[key as keyof DashboardKPIs];
     if (typeof value === 'number') {
-      return value >= 1000 ? `${(value / 1000).toFixed(1)}K` : value.toString();
+      if (value >= 10000) return `${(value / 1000).toFixed(1)}K`;
+      if (value >= 1000) return value.toLocaleString();
+      return value.toString();
     }
     return String(value);
   };
 
-  const getSeverityColor = (severidad: string) => {
-    switch (severidad) {
-      case 'critica': return 'badge-critical';
-      case 'alta': return 'badge-pending';
-      case 'media': return 'badge-in-progress';
-      default: return 'badge-resolved';
-    }
+  const getStatusLabel = (score: number): { label: string; color: string } => {
+    if (score >= 80) return { label: 'Excelente', color: 'text-emerald-400' };
+    if (score >= 60) return { label: 'Bueno', color: 'text-amber-400' };
+    return { label: 'Requiere atencion', color: 'text-rose-400' };
   };
 
-  const getStatusColor = (estado: string) => {
-    switch (estado) {
-      case 'pendiente': return 'badge-pending';
-      case 'revisada': return 'badge-in-progress';
-      case 'resuelta': return 'badge-resolved';
-      default: return '';
+  const getSeverityStyles = (severidad: string) => {
+    switch (severidad) {
+      case 'critica': return { bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/20' };
+      case 'alta': return { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' };
+      case 'media': return { bg: 'bg-sky-500/10', text: 'text-sky-400', border: 'border-sky-500/20' };
+      default: return { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' };
     }
   };
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Cargando dashboard...</div>
-      </div>
+      <main className="p-6 flex items-center justify-center min-h-screen" aria-busy="true" aria-label="Cargando dashboard">
+        <div className="flex flex-col items-center gap-3">
+          <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+          <p className="text-muted-foreground">Cargando datos...</p>
+        </div>
+      </main>
     );
   }
 
-  return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard Ejecutivo</h1>
-          <p className="text-muted-foreground">Vista general de KPIs y metricas principales del sistema de monitoreo energetico</p>
-        </div>
-        <Select value={selectedSede} onValueChange={setSelectedSede}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filtrar por Sede" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las sedes</SelectItem>
-            {sedes.map((sede) => (
-              <SelectItem key={sede.id} value={sede.id}>{sede.nombre}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+  const systemStatus = getStatusLabel(kpis?.score_sostenibilidad || 0);
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {statCardsConfig.map((stat, index) => {
-          const trendValue = trendsData[stat.key];
-          const hasTrend = stat.hasTrend && trendValue !== null;
-          
-          return (
-            <motion.div
-              key={stat.key}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Card className="stat-card">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <stat.icon className="w-5 h-5 text-primary" />
+  return (
+    <main className="p-6 space-y-8" role="main" aria-label="Dashboard ejecutivo">
+      {/* Header */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-balance">Dashboard Ejecutivo</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Ultima actualizacion: <time className="tabular-nums">{lastUpdate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</time>
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={fetchData}
+            aria-label="Actualizar datos"
+            className="gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span className="hidden sm:inline">Actualizar</span>
+          </Button>
+          <Select value={selectedSede} onValueChange={setSelectedSede}>
+            <SelectTrigger className="w-44" aria-label="Filtrar por sede">
+              <SelectValue placeholder="Todas las sedes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las sedes</SelectItem>
+              {sedes.map((sede) => (
+                <SelectItem key={sede.id} value={sede.id}>{sede.nombre}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </header>
+
+      {/* Primary KPIs */}
+      <section aria-labelledby="kpis-title">
+        <h2 id="kpis-title" className="sr-only">Indicadores principales</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {primaryKPIs.map((kpi) => {
+            const trendValue = trendsData[kpi.key];
+            const hasTrend = kpi.hasTrend && trendValue !== null;
+            const isNegativeTrend = trendValue && trendValue > 0;
+            
+            return (
+              <Card key={kpi.key} className="relative overflow-hidden group hover:border-primary/30 transition-colors">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`p-2 rounded-lg bg-secondary ${kpi.color}`}>
+                      <kpi.icon className="w-5 h-5" aria-hidden="true" />
+                    </div>
                     {hasTrend && (
-                      <div className={`flex items-center gap-1 text-xs ${trendValue > 0 ? 'text-destructive' : 'text-success'}`}>
-                        {trendValue > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      <div 
+                        className={`flex items-center gap-1 text-xs font-medium tabular-nums ${isNegativeTrend ? 'text-rose-400' : 'text-emerald-400'}`}
+                        aria-label={`Tendencia: ${isNegativeTrend ? 'aumento' : 'disminucion'} de ${Math.abs(trendValue)}%`}
+                      >
+                        {isNegativeTrend ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                         {Math.abs(trendValue)}%
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-                  <p className="text-2xl font-bold">
-                    {getKpiValue(stat.key)}
-                    <span className="text-sm font-normal text-muted-foreground">{stat.suffix}</span>
+                  <p className="text-xs text-muted-foreground mb-1">{kpi.label}</p>
+                  <p className="text-3xl font-semibold tracking-tight tabular-nums">
+                    {formatValue(kpi.key)}
+                    {kpi.suffix && <span className="text-base font-normal text-muted-foreground ml-1">{kpi.suffix}</span>}
                   </p>
                 </CardContent>
               </Card>
-            </motion.div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      </section>
 
-      {/* Charts Row */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Consumption Evolution Chart */}
-        <Card className="lg:col-span-2 chart-container">
-          <CardHeader>
-            <CardTitle className="text-lg">Evolucion del Consumo Energetico</CardTitle>
-            <p className="text-sm text-muted-foreground">Valores reales vs predicciones (Energia, Agua, CO2)</p>
+      {/* Secondary KPIs - Compact row */}
+      <section aria-labelledby="secondary-kpis" className="flex flex-wrap gap-3">
+        <h2 id="secondary-kpis" className="sr-only">Indicadores secundarios</h2>
+        {secondaryKPIs.map((kpi) => (
+          <div 
+            key={kpi.key}
+            className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-secondary/50 border border-border/50"
+          >
+            <kpi.icon className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm text-muted-foreground">{kpi.label}</span>
+              <span className="font-semibold tabular-nums">{formatValue(kpi.key)}{kpi.suffix}</span>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      {/* Charts Section */}
+      <section className="grid lg:grid-cols-3 gap-6" aria-labelledby="charts-title">
+        <h2 id="charts-title" className="sr-only">Graficos de consumo</h2>
+        
+        {/* Main Chart - Energy Consumption */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-medium">Consumo Energetico</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Real vs Prediccion - Ultimos 7 meses</p>
+              </div>
+              <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                  <span className="text-muted-foreground">Real</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-0.5 bg-purple-400" style={{ borderStyle: 'dashed' }} />
+                  <span className="text-muted-foreground">Prediccion</span>
+                </div>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[280px]" role="img" aria-label="Grafico de lineas mostrando consumo energetico real vs prediccion">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trends}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="fecha" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <AreaChart data={trends}>
+                  <defs>
+                    <linearGradient id="energyGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(45, 100%, 51%)" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="hsl(45, 100%, 51%)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis 
+                    dataKey="fecha" 
+                    stroke="hsl(var(--muted-foreground))" 
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))" 
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => `${(v/1000).toFixed(0)}K`}
+                  />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
+                      fontSize: '12px',
                     }}
+                    formatter={(value: number) => [`${value.toLocaleString()} kWh`, '']}
                   />
-                  <Legend />
-                  <Line type="monotone" dataKey="energia_real" name="Real" stroke="hsl(var(--chart-energy))" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="energia_predicha" name="Prediccion" stroke="hsl(var(--chart-prediction))" strokeWidth={2} strokeDasharray="5 5" dot={false} />
-                </LineChart>
+                  <Area 
+                    type="monotone" 
+                    dataKey="energia_real" 
+                    stroke="hsl(45, 100%, 51%)" 
+                    strokeWidth={2} 
+                    fill="url(#energyGradient)"
+                    name="Real"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="energia_predicha" 
+                    stroke="hsl(280, 65%, 60%)" 
+                    strokeWidth={2} 
+                    strokeDasharray="5 5" 
+                    dot={false}
+                    name="Prediccion"
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
 
-        {/* System Status */}
-        <Card className="chart-container">
-          <CardHeader>
-            <CardTitle className="text-lg">Estado del Sistema</CardTitle>
-            <p className="text-sm text-muted-foreground">Salud general de la red</p>
+        {/* System Health */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">Estado del Sistema</CardTitle>
+            <p className="text-xs text-muted-foreground">Salud general de la red</p>
           </CardHeader>
-          <CardContent className="flex flex-col items-center">
-            <div className="relative w-32 h-32 mb-4">
-              <svg className="w-full h-full transform -rotate-90">
+          <CardContent className="flex flex-col items-center pt-4">
+            {/* Circular Progress */}
+            <div className="relative w-36 h-36 mb-6" role="progressbar" aria-valuenow={kpis?.score_sostenibilidad || 0} aria-valuemin={0} aria-valuemax={100}>
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 128 128">
                 <circle
                   cx="64"
                   cy="64"
-                  r="56"
+                  r="54"
                   fill="none"
                   stroke="hsl(var(--muted))"
-                  strokeWidth="12"
+                  strokeWidth="10"
                 />
                 <circle
                   cx="64"
                   cy="64"
-                  r="56"
+                  r="54"
                   fill="none"
                   stroke="hsl(var(--success))"
-                  strokeWidth="12"
-                  strokeDasharray={`${(kpis?.score_sostenibilidad || 85) * 3.51} 351`}
+                  strokeWidth="10"
+                  strokeDasharray={`${(kpis?.score_sostenibilidad || 0) * 3.39} 339`}
                   strokeLinecap="round"
+                  className="transition-all duration-1000 ease-out"
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-bold">{kpis?.score_sostenibilidad || 85}%</span>
-                <span className="text-xs text-success">Excelente</span>
+                <span className="text-4xl font-semibold tabular-nums">{kpis?.score_sostenibilidad || 0}</span>
+                <span className={`text-xs font-medium ${systemStatus.color}`}>{systemStatus.label}</span>
               </div>
             </div>
-            <div className="w-full space-y-2 text-sm">
-              <div className="flex items-center justify-between">
+
+            {/* Status List */}
+            <ul className="w-full space-y-3 text-sm" aria-label="Estado de componentes">
+              <li className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-success" />
-                  <span>Sedes operando normalmente</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" aria-hidden="true" />
+                  <span>Sedes operativas</span>
                 </div>
-                <span className="font-medium bg-success/20 text-success px-2 py-0.5 rounded">4</span>
-              </div>
-              <div className="flex items-center justify-between">
+                <span className="font-medium tabular-nums bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded">4</span>
+              </li>
+              <li className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-warning" />
-                  <span>Sectores requieren monitoreo</span>
+                  <span className="w-2 h-2 rounded-full bg-amber-400" aria-hidden="true" />
+                  <span>Sectores monitoreados</span>
                 </div>
-                <span className="font-medium bg-warning/20 text-warning px-2 py-0.5 rounded">5</span>
-              </div>
-              <div className="flex items-center justify-between">
+                <span className="font-medium tabular-nums bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded">12</span>
+              </li>
+              <li className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-destructive" />
-                  <span>Alertas en estado critico</span>
+                  <span className="w-2 h-2 rounded-full bg-rose-400" aria-hidden="true" />
+                  <span>Alertas criticas</span>
                 </div>
-                <span className="font-medium bg-destructive/20 text-destructive px-2 py-0.5 rounded">2</span>
-              </div>
-            </div>
+                <span className="font-medium tabular-nums bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded">
+                  {alerts.filter(a => a.severidad === 'critica').length}
+                </span>
+              </li>
+            </ul>
           </CardContent>
         </Card>
-      </div>
+      </section>
 
       {/* Alerts and Rankings */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Recent Alerts */}
-        <Card className="chart-container">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Alertas Recientes</CardTitle>
-              <p className="text-sm text-muted-foreground">Monitoreo en tiempo real de anomalias</p>
-            </div>
-            <a href="/dashboard/alertas" className="text-sm text-primary hover:underline">Ver todas</a>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {alerts.slice(0, 3).map((alert) => (
-              <div key={alert.id} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
-                <AlertTriangle className={`w-5 h-5 mt-0.5 ${
-                  alert.severidad === 'critica' ? 'text-destructive' : 
-                  alert.severidad === 'alta' ? 'text-warning' : 'text-info'
-                }`} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium">{alert.sede} - {alert.sector}</span>
-                    <span className={`badge-status ${getStatusColor(alert.estado)}`}>
-                      {alert.estado.charAt(0).toUpperCase() + alert.estado.slice(1)}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground truncate">{alert.descripcion}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{alert.fecha}</p>
-                </div>
+      <section className="grid lg:grid-cols-2 gap-6" aria-labelledby="alerts-rankings">
+        <h2 id="alerts-rankings" className="sr-only">Alertas y ranking de sedes</h2>
+
+        {/* Alerts */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-medium">Alertas Recientes</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Anomalias detectadas por Isolation Forest</p>
               </div>
-            ))}
+              <a 
+                href="/dashboard/alertas" 
+                className="text-xs text-primary hover:underline inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+              >
+                Ver todas <ArrowRight className="w-3 h-3" />
+              </a>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3" aria-label="Lista de alertas recientes">
+              {alerts.slice(0, 3).map((alert) => {
+                const styles = getSeverityStyles(alert.severidad);
+                return (
+                  <li 
+                    key={alert.id} 
+                    className={`p-3 rounded-lg border ${styles.bg} ${styles.border} transition-colors hover:bg-secondary/80`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className={`w-4 h-4 mt-0.5 ${styles.text}`} aria-hidden="true" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-sm">{alert.sede}</span>
+                          <span className="text-muted-foreground">-</span>
+                          <span className="text-sm text-muted-foreground">{alert.sector}</span>
+                          <span className={`text-[10px] font-medium uppercase px-1.5 py-0.5 rounded ${styles.bg} ${styles.text}`}>
+                            {alert.severidad}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-1">{alert.descripcion}</p>
+                        <div className="flex items-center gap-3 mt-2 text-xs">
+                          <span className="text-muted-foreground tabular-nums">{alert.fecha}</span>
+                          <span className="text-rose-400 tabular-nums">{alert.valor_detectado.toLocaleString()} kWh</span>
+                          <span className="text-muted-foreground">/</span>
+                          <span className="text-emerald-400 tabular-nums">{alert.valor_esperado.toLocaleString()} kWh esperado</span>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           </CardContent>
         </Card>
 
-        {/* Top 4 Sedes by Consumption */}
-        <Card className="chart-container">
-          <CardHeader>
-            <CardTitle className="text-lg">Top 4 Sedes por Consumo</CardTitle>
-            <p className="text-sm text-muted-foreground">Ranking de consumo energetico mensual</p>
+        {/* Rankings */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-medium">Ranking de Sedes</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Ordenadas por consumo energetico mensual</p>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" aria-label="Ranking de sedes por consumo">
                 <thead>
-                  <tr className="text-left text-muted-foreground border-b border-border">
-                    <th className="pb-3 font-medium">RANKING</th>
-                    <th className="pb-3 font-medium">SEDE</th>
-                    <th className="pb-3 font-medium">CONSUMO</th>
-                    <th className="pb-3 font-medium">TENDENCIA</th>
-                    <th className="pb-3 font-medium">ESTADO</th>
+                  <tr className="text-left text-xs text-muted-foreground border-b border-border">
+                    <th className="pb-3 font-medium w-12">#</th>
+                    <th className="pb-3 font-medium">Sede</th>
+                    <th className="pb-3 font-medium text-right">Consumo</th>
+                    <th className="pb-3 font-medium text-right">Tendencia</th>
+                    <th className="pb-3 font-medium text-right">Estado</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sedes.sort((a, b) => b.consumo_energia - a.consumo_energia).map((sede, index) => (
-                    <tr key={sede.id} className="border-b border-border/50">
-                      <td className="py-3">
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                          index === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                        }`}>
-                          {index + 1}
-                        </span>
-                      </td>
-                      <td className="py-3 font-medium">{sede.nombre.split(' ')[0]}</td>
-                      <td className="py-3">{sede.consumo_energia.toLocaleString()} kWh</td>
-                      <td className={`py-3 ${index === 0 ? 'text-destructive' : index === 3 ? 'text-success' : 'text-muted-foreground'}`}>
-                        {index === 0 ? '+3%' : index === 1 ? '-2%' : index === 2 ? '0%' : '-5%'}
-                      </td>
-                      <td className="py-3">
-                        <span className={`badge-status ${index === 0 ? 'badge-pending' : 'badge-resolved'}`}>
-                          {index === 0 ? 'Alerta' : 'Normal'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {[...sedes].sort((a, b) => b.consumo_energia - a.consumo_energia).map((sede, index) => {
+                    const trendValues = ['+3.2%', '-1.8%', '+0.5%', '-4.1%'];
+                    const isHighConsumption = index === 0;
+                    
+                    return (
+                      <tr key={sede.id} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
+                        <td className="py-3">
+                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
+                            index === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {index + 1}
+                          </span>
+                        </td>
+                        <td className="py-3 font-medium">{sede.nombre.split(' ')[0]}</td>
+                        <td className="py-3 text-right tabular-nums">{sede.consumo_energia.toLocaleString()} kWh</td>
+                        <td className={`py-3 text-right tabular-nums ${trendValues[index].startsWith('+') ? 'text-rose-400' : 'text-emerald-400'}`}>
+                          {trendValues[index]}
+                        </td>
+                        <td className="py-3 text-right">
+                          <span className={`text-[10px] font-medium uppercase px-2 py-1 rounded ${
+                            isHighConsumption 
+                              ? 'bg-amber-500/10 text-amber-400' 
+                              : 'bg-emerald-500/10 text-emerald-400'
+                          }`}>
+                            {isHighConsumption ? 'Alerta' : 'Normal'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           </CardContent>
         </Card>
-      </div>
+      </section>
 
-      {/* Carbon Footprint Calculation Info */}
-      <Card className="chart-container">
-        <CardHeader>
-          <CardTitle className="text-lg">Como se calcula la huella de carbono?</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="p-4 rounded-lg bg-secondary/50">
-              <h4 className="text-primary font-medium mb-2">1. Consumo Electrico</h4>
-              <p className="text-sm text-muted-foreground">kWh x Factor de emision CO2 (0.5126 kg CO2/kWh para Colombia)</p>
+      {/* Carbon Footprint Info */}
+      <section aria-labelledby="carbon-info">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle id="carbon-info" className="text-base font-medium">Calculo de Huella de Carbono</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Metodologia de calculo segun estandares colombianos</p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <article className="p-4 rounded-lg bg-secondary/50 border border-border/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="w-4 h-4 text-amber-400" aria-hidden="true" />
+                  <h3 className="font-medium text-sm">Consumo Electrico</h3>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  kWh x Factor de emision <span className="tabular-nums text-foreground">(0.5126 kg CO2/kWh)</span> segun UPME Colombia
+                </p>
+              </article>
+              <article className="p-4 rounded-lg bg-secondary/50 border border-border/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <Droplets className="w-4 h-4 text-sky-400" aria-hidden="true" />
+                  <h3 className="font-medium text-sm">Consumo de Agua</h3>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  m3 x Factor tratamiento + bombeo <span className="tabular-nums text-foreground">(0.376 kg CO2/m3)</span>
+                </p>
+              </article>
+              <article className="p-4 rounded-lg bg-secondary/50 border border-border/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <Activity className="w-4 h-4 text-emerald-400" aria-hidden="true" />
+                  <h3 className="font-medium text-sm">Per Capita</h3>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Total CO2 / Estudiantes activos por sede
+                </p>
+              </article>
             </div>
-            <div className="p-4 rounded-lg bg-secondary/50">
-              <h4 className="text-info font-medium mb-2">2. Consumo de Agua</h4>
-              <p className="text-sm text-muted-foreground">m3 x Factor tratamiento + Factor bombeo (0.376 kg CO2/m3)</p>
-            </div>
-            <div className="p-4 rounded-lg bg-secondary/50">
-              <h4 className="text-success font-medium mb-2">3. Per Capita</h4>
-              <p className="text-sm text-muted-foreground">Total CO2 / Numero de estudiantes activos por sede</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </section>
 
       <Chatbot />
-    </div>
+    </main>
   );
 }
