@@ -171,9 +171,28 @@ def prepare_records(df: pd.DataFrame) -> list:
 
 async def check_existing_data(session: AsyncSession) -> int:
     """Verifica si ya hay datos en la tabla."""
-    result = await session.execute(text("SELECT COUNT(*) FROM consumption_records"))
-    count = result.scalar()
-    return count
+    try:
+        result = await session.execute(text("SELECT COUNT(*) FROM consumption_records"))
+        count = result.scalar()
+        return count
+    except Exception as e:
+        logger.warning(f"No se pudo verificar datos existentes (tabla podría no existir): {e}")
+        return 0
+
+
+async def wait_for_table(session: AsyncSession, max_retries: int = 10, delay: int = 5):
+    """Espera a que la tabla consumption_records exista."""
+    for attempt in range(max_retries):
+        try:
+            await session.execute(text("SELECT 1 FROM consumption_records LIMIT 1"))
+            logger.info("Tabla consumption_records disponible")
+            return True
+        except Exception:
+            logger.info(f"Esperando a que la tabla exista... intento {attempt + 1}/{max_retries}")
+            await asyncio.sleep(delay)
+    
+    logger.error("La tabla no está disponible después de todos los intentos")
+    return False
 
 
 async def truncate_table(session: AsyncSession):
@@ -232,6 +251,11 @@ async def load_data(force_reload: bool = False):
     
     async with async_session() as session:
         try:
+            # Wait for table to exist
+            if not await wait_for_table(session):
+                logger.error("No se pudo conectar a la tabla. Saliendo...")
+                sys.exit(1)
+            
             # Check existing data
             existing_count = await check_existing_data(session)
             

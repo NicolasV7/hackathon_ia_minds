@@ -1,10 +1,11 @@
 # Data Loader Dockerfile - One-time container to populate database
 FROM python:3.12-slim
 
-# Install build dependencies
+# Install build dependencies and PostgreSQL client
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -16,11 +17,13 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # Copy data loader script
 COPY scripts/load_consumption_data.py ./load_data.py
+COPY init_db.sql ./init_db.sql
 
 # Environment
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    CSV_PATH=/data/consumos_uptc.csv
+    CSV_PATH=/data/consumos_uptc.csv \
+    DATABASE_URL=postgresql+asyncpg://uptc_user:uptc_password_2024@database:5432/uptc_energy
 
-# Run data loader
-CMD ["python", "load_data.py", "--force"]
+# Wait for database and run data loader
+CMD ["sh", "-c", "sleep 10 && python load_data.py --force"]
