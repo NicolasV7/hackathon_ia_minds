@@ -1,0 +1,63 @@
+{
+  "cols_to_transform": [
+    "energia_total_kwh",
+    "energia_comedor_kwh",
+    "energia_salones_kwh",
+    "energia_laboratorios_kwh",
+    "energia_auditorios_kwh",
+    "energia_oficinas_kwh",
+    "potencia_total_kw",
+    "agua_litros",
+    "ocupacion_pct",
+    "co2_kg"
+  ],
+  "numerical_cols": [
+    "energia_total_kwh",
+    "energia_comedor_kwh",
+    "energia_salones_kwh",
+    "energia_laboratorios_kwh",
+    "energia_auditorios_kwh",
+    "energia_oficinas_kwh",
+    "potencia_total_kw",
+    "agua_litros",
+    "temperatura_exterior_c",
+    "ocupacion_pct",
+    "co2_kg"
+  ],
+  "categorical_cols": [
+    "sede",
+    "dia_nombre",
+    "periodo_academico"
+  ],
+  "temporal_cols": [
+    "hora",
+    "dia_semana",
+    "mes",
+    "trimestre",
+    "a\u00f1o"
+  ],
+  "binary_cols": [
+    "es_fin_semana",
+    "es_festivo",
+    "es_semana_parciales",
+    "es_semana_finales"
+  ],
+  "cols_to_scale": [
+    "energia_total_kwh",
+    "energia_comedor_kwh",
+    "energia_salones_kwh",
+    "energia_laboratorios_kwh",
+    "energia_auditorios_kwh",
+    "energia_oficinas_kwh",
+    "potencia_total_kw",
+    "agua_litros",
+    "temperatura_exterior_c",
+    "ocupacion_pct",
+    "hora",
+    "dia_semana",
+    "mes",
+    "trimestre",
+    "a\u00f1o",
+    "co2_kg"
+  ]
+}

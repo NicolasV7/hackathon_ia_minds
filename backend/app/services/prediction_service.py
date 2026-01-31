@@ -84,6 +84,7 @@ class PredictionService:
                 prediction_timestamp=timestamp,
                 predicted_co2_kg=prediction_result["predicted_co2_kg"],
                 predicted_energy_kwh=prediction_result["predicted_energy_kwh"],
+                predicted_kwh=prediction_result["predicted_energy_kwh"],  # Legacy compatibility
                 confidence_co2=prediction_result["confidence_co2"],
                 confidence_energy=prediction_result["confidence_energy"],
                 energia_comedor_kwh=request.energia_comedor_kwh,

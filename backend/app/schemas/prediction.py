@@ -78,7 +78,7 @@ class PredictionResponse(BaseModel):
     confidence_energy: float = Field(0.998, description="Model confidence for Energy (R² = 0.998)")
     
     # Model metrics (for reference)
-    model_metrics: Optional[dict] = Field(
+    metrics: Optional[dict] = Field(
         default={
             "co2": {"R2": 0.893, "MAE": 0.153},
             "energy": {"R2": 0.998, "MAE": 0.014}
@@ -131,7 +131,7 @@ class CO2PredictionResponse(BaseModel):
     confidence: float = 0.893
     timestamp: datetime
     sede: str
-    model_info: dict = Field(
+    info: dict = Field(
         default={"type": "LightGBM", "R2": 0.893, "MAE": 0.153}
     )
     
@@ -174,7 +174,7 @@ class EnergyPredictionResponse(BaseModel):
     timestamp: datetime
     sede: str
     co2_kg_used: float
-    model_info: dict = Field(
+    info: dict = Field(
         default={"type": "Ridge", "R2": 0.998, "MAE": 0.014}
     )
     
@@ -200,6 +200,7 @@ class PredictionCreate(BaseModel):
     prediction_timestamp: datetime
     predicted_co2_kg: float
     predicted_energy_kwh: float
+    predicted_kwh: Optional[float] = None  # Legacy field for backwards compatibility
     confidence_co2: float = 0.893
     confidence_energy: float = 0.998
     

@@ -46,6 +46,9 @@ COPY --chown=appuser:appgroup ./app ./app
 COPY --chown=appuser:appgroup ./ml_models ./ml_models
 COPY --chown=appuser:appgroup ./scripts ./scripts
 
+# Copy new ML models (CO2 and Energy prediction models)
+COPY --chown=appuser:appgroup ./newmodels ./newmodels
+
 # Create data directory with proper permissions
 RUN mkdir -p /app/data && chmod 777 /app/data
 
