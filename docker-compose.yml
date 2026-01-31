@@ -1,6 +1,6 @@
 # UPTC EcoEnergy - Zero-Configuration Docker Compose
 # This is the ONLY file you need for Dokploy deployment
-# Copy .env.example to .env and configure your API keys
+# NO environment variables required - everything is pre-configured below
 
 version: '3.8'
 
@@ -134,6 +134,7 @@ services:
           memory: 256M
 
   # Telegram Bot - Fully configured with OpenAI and Telegram Token
+  # Token: 8343621647:AAEE5OROMpUI2nOG5aA3YMuttg-zNwWteHM
   telegram-bot:
     build:
       context: ./telegram_bot
