@@ -2,6 +2,7 @@
 Analytics and dashboard endpoints.
 """
 
+import logging
 from typing import Dict
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -9,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
 from app.services.analytics_service import AnalyticsService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 analytics_service = AnalyticsService()
@@ -45,8 +48,8 @@ async def get_dashboard_kpis(
 @router.get("/consumption/trends/{sede}", response_model=Dict)
 async def get_consumption_trends(
     sede: str,
-    start_date: datetime = Query(..., description="Start datetime"),
-    end_date: datetime = Query(..., description="End datetime"),
+    start_date: str = Query(..., description="Start datetime (ISO format)"),
+    end_date: str = Query(..., description="End datetime (ISO format)"),
     granularity: str = Query("hourly", description="Granularity: hourly, daily, weekly"),
     db: AsyncSession = Depends(get_db)
 ):
@@ -55,8 +58,8 @@ async def get_consumption_trends(
     
     Args:
         sede: Sede name
-        start_date: Start datetime
-        end_date: End datetime
+        start_date: Start datetime (ISO format)
+        end_date: End datetime (ISO format)
         granularity: Data granularity (hourly, daily, weekly)
         db: Database session
         
@@ -70,25 +73,36 @@ async def get_consumption_trends(
                 detail="Invalid granularity. Must be 'hourly', 'daily', or 'weekly'"
             )
         
+        # Parse dates manually to handle format issues
+        try:
+            start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid date format. Use ISO format (YYYY-MM-DDTHH:MM:SS)"
+            )
+        
         trends = await analytics_service.get_consumption_trends(
             db=db,
             sede=sede,
-            start_date=start_date,
-            end_date=end_date,
+            start_date=start_dt,
+            end_date=end_dt,
             granularity=granularity
         )
         return trends
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error getting consumption trends: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/consumption/sectors/{sede}", response_model=Dict)
 async def get_sector_breakdown(
     sede: str,
-    start_date: datetime = Query(..., description="Start datetime"),
-    end_date: datetime = Query(..., description="End datetime"),
+    start_date: str = Query(..., description="Start datetime (ISO format)"),
+    end_date: str = Query(..., description="End datetime (ISO format)"),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -96,22 +110,35 @@ async def get_sector_breakdown(
     
     Args:
         sede: Sede name
-        start_date: Start datetime
-        end_date: End datetime
+        start_date: Start datetime (ISO format)
+        end_date: End datetime (ISO format)
         db: Database session
         
     Returns:
         Dictionary with sector breakdown data
     """
     try:
+        # Parse dates manually to handle format issues
+        try:
+            start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid date format. Use ISO format (YYYY-MM-DDTHH:MM:SS)"
+            )
+        
         breakdown = await analytics_service.get_sector_breakdown(
             db=db,
             sede=sede,
-            start_date=start_date,
-            end_date=end_date
+            start_date=start_dt,
+            end_date=end_dt
         )
         return breakdown
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Error getting sector breakdown: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
