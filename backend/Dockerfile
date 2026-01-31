@@ -26,9 +26,10 @@ FROM python:3.12-slim AS production
 # Build argument for OpenAI API Key
 ARG OPENAI_API_KEY
 
-# Install curl for healthcheck
+# Install curl for healthcheck and libgomp for LightGBM
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Security: Create non-root user
