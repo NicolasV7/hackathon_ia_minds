@@ -1,44 +1,39 @@
 # Dependencies
-node_modules/
-.pnp/
+node_modules
+.pnp
 .pnp.js
 
-# Build
-.next/
-out/
-build/
-dist/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# Git
-.git/
-.gitignore
+# Build outputs
+dist
+build
 
 # Testing
-coverage/
-.nyc_output/
+coverage
 
-# Local development
-.env
+# Development
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 *.log
-npm-debug.log*
 
-# Docker
-Dockerfile
-.dockerignore
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
 
-# Documentation
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (not needed in container)
 *.md
+!README.md
 
-# Debug
-.npm/
-.eslintcache
+# Git
+.git
+.gitignore
+
+# Bun lockfile (we use npm)
+bun.lockb
