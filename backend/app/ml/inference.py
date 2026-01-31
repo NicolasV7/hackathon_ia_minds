@@ -16,7 +16,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, Union
 from datetime import datetime
 import logging
 
@@ -474,6 +474,151 @@ class MLService:
                 "power_transformer_loaded": self.power_transformer is not None
             }
         }
+    
+    def detect_anomalies(
+        self,
+        consumption_data: pd.DataFrame,
+        contamination: float = 0.1,
+        severity_threshold: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Detect anomalies in consumption data using Isolation Forest.
+        
+        Args:
+            consumption_data: DataFrame with consumption records
+            contamination: Expected proportion of anomalies (default 10%)
+            severity_threshold: Optional severity filter
+            
+        Returns:
+            List of detected anomalies with details
+        """
+        try:
+            from sklearn.ensemble import IsolationForest
+            
+            if consumption_data.empty:
+                logger.warning("No consumption data provided for anomaly detection")
+                return []
+            
+            # Prepare features for anomaly detection
+            feature_cols = [
+                'energia_total_kwh',
+                'energia_comedor_kwh',
+                'energia_salones_kwh',
+                'energia_laboratorios_kwh',
+                'energia_auditorios_kwh',
+                'energia_oficinas_kwh'
+            ]
+            
+            # Check which columns exist
+            available_cols = [col for col in feature_cols if col in consumption_data.columns]
+            
+            if not available_cols:
+                logger.warning("No valid feature columns found for anomaly detection")
+                return []
+            
+            # Fill NaN values with 0
+            X = consumption_data[available_cols].fillna(0)
+            
+            # Initialize Isolation Forest
+            iso_forest = IsolationForest(
+                contamination=contamination,
+                random_state=42,
+                n_estimators=100
+            )
+            
+            # Fit and predict
+            anomaly_labels = iso_forest.fit_predict(X)
+            anomaly_scores = iso_forest.decision_function(X)
+            
+            # Find anomalies (label == -1)
+            anomaly_indices = np.where(anomaly_labels == -1)[0]
+            
+            detected_anomalies = []
+            
+            for idx in anomaly_indices:
+                row = consumption_data.iloc[idx]
+                score = anomaly_scores[idx]
+                
+                # Calculate severity based on score
+                if score < -0.5:
+                    severity = "critical"
+                elif score < -0.3:
+                    severity = "high"
+                elif score < -0.1:
+                    severity = "medium"
+                else:
+                    severity = "low"
+                
+                # Skip if severity threshold is set and doesn't match
+                if severity_threshold and severity != severity_threshold:
+                    continue
+                
+                # Calculate expected value (median of non-anomalous data)
+                expected_value = consumption_data[consumption_data.index != idx]['energia_total_kwh'].median()
+                actual_value = row['energia_total_kwh']
+                deviation_pct = ((actual_value - expected_value) / expected_value * 100) if expected_value > 0 else 0
+                
+                # Determine sector with highest consumption
+                sector_values = {
+                    'Comedor': float(row.get('energia_comedor_kwh', 0) or 0),
+                    'Salones': float(row.get('energia_salones_kwh', 0) or 0),
+                    'Laboratorios': float(row.get('energia_laboratorios_kwh', 0) or 0),
+                    'Auditorios': float(row.get('energia_auditorios_kwh', 0) or 0),
+                    'Oficinas': float(row.get('energia_oficinas_kwh', 0) or 0)
+                }
+                primary_sector = max(sector_values.items(), key=lambda x: x[1])[0]
+                
+                # Determine anomaly type
+                if row.get('es_fin_semana', False) or row.get('hora', 0) < 6 or row.get('hora', 0) > 22:
+                    anomaly_type = "off_hours_usage"
+                    description = f"Consumo anómalo detectado fuera de horario laboral ({row.get('hora', 0)}:00)."
+                elif deviation_pct > 50:
+                    anomaly_type = "consumption_spike"
+                    description = f"Pico de consumo {deviation_pct:.1f}% superior al valor esperado."
+                elif deviation_pct < -30:
+                    anomaly_type = "consumption_drop"
+                    description = f"Caída inesperada de consumo ({deviation_pct:.1f}%). Posible fallo de medición."
+                else:
+                    anomaly_type = "pattern_deviation"
+                    description = f"Desviación del patrón normal de consumo."
+                
+                # Calculate potential savings
+                potential_savings = abs(actual_value - expected_value) if deviation_pct > 0 else 0
+                
+                anomaly = {
+                    'timestamp': row.get('timestamp', datetime.utcnow()),
+                    'sede': row.get('sede', 'Unknown'),
+                    'sector': primary_sector,
+                    'anomaly_type': anomaly_type,
+                    'severity': severity,
+                    'actual_value': actual_value,
+                    'expected_value': expected_value,
+                    'deviation_pct': abs(deviation_pct),
+                    'anomaly_score': float(score),
+                    'description': description,
+                    'recommendation': self._get_recommendation_for_anomaly(anomaly_type, primary_sector),
+                    'potential_savings_kwh': potential_savings,
+                    'detection_method': 'isolation_forest'
+                }
+                
+                detected_anomalies.append(anomaly)
+            
+            logger.info(f"Detected {len(detected_anomalies)} anomalies using Isolation Forest")
+            return detected_anomalies
+            
+        except Exception as e:
+            logger.error(f"Error in anomaly detection: {e}")
+            return []
+    
+    def _get_recommendation_for_anomaly(self, anomaly_type: str, sector: str) -> str:
+        """Get recommendation based on anomaly type and sector."""
+        recommendations = {
+            "off_hours_usage": f"Verificar protocolo de apagado en {sector}. Instalar sensores de ocupación.",
+            "consumption_spike": f"Revisar equipos en {sector}. Posible fallo o uso inadecuado.",
+            "consumption_drop": f"Verificar medidores en {sector}. Calibrar equipos de medición.",
+            "pattern_deviation": f"Analizar patrones de uso en {sector}. Optimizar horarios."
+        }
+        return recommendations.get(anomaly_type, f"Investigar consumo anómalo en {sector}.")
 
 
 # Global ML service instance

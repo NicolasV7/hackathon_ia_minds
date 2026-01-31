@@ -206,7 +206,7 @@ async def get_detected_anomalies(
 ):
     """
     Get detected anomalies using Isolation Forest model.
-    If no anomalies exist in database, generates sample anomalies for demonstration.
+    Runs real-time anomaly detection on consumption data.
     
     Args:
         sede: Optional sede filter
@@ -216,150 +216,38 @@ async def get_detected_anomalies(
         List of detected AnomalyResponse objects
     """
     try:
-        # First try to get real anomalies from database
+        # First try to get existing anomalies from database
         anomalies = await anomaly_service.get_unresolved_anomalies(db=db, sede=sede)
         
-        # If no anomalies found, generate sample data
+        # If no anomalies found, run detection on real data
         if not anomalies:
-            logger.info("No anomalies found in database, generating sample data")
-            anomalies = generate_sample_anomalies(sede)
+            logger.info("No anomalies in DB, running Isolation Forest detection on real data")
+            
+            # Run detection for each sede or specific sede
+            sedes_to_check = [sede] if sede else ["tunja", "duitama", "sogamoso", "chiquinquira"]
+            
+            for check_sede in sedes_to_check:
+                try:
+                    # Detect anomalies using Isolation Forest
+                    detected = await anomaly_service.detect_anomalies(
+                        db=db,
+                        sede=check_sede,
+                        start_date=datetime.utcnow() - timedelta(days=30),
+                        end_date=datetime.utcnow()
+                    )
+                    
+                    if detected:
+                        logger.info(f"Detected {len(detected)} anomalies for {check_sede}")
+                        
+                except Exception as detect_error:
+                    logger.error(f"Error detecting anomalies for {check_sede}: {detect_error}")
+                    continue
+            
+            # Get newly detected anomalies
+            anomalies = await anomaly_service.get_unresolved_anomalies(db=db, sede=sede)
         
         return anomalies
+        
     except Exception as e:
         logger.error(f"Error getting detected anomalies: {e}")
-        # Return sample data on error
-        return generate_sample_anomalies(sede)
-
-
-def generate_sample_anomalies(sede: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Generate sample anomaly data for demonstration purposes."""
-    from datetime import datetime
-    
-    sample_anomalies = [
-        {
-            "id": 1,
-            "detected_at": datetime.utcnow(),
-            "anomaly_timestamp": datetime.utcnow(),
-            "sede": sede or "Tunja",
-            "sector": "Comedores",
-            "anomaly_type": "consumption_spike",
-            "severity": "critical",
-            "observed_value_kwh": 4500.0,
-            "expected_value_kwh": 3100.0,
-            "deviation_kwh": 1400.0,
-            "deviation_percentage": 45.2,
-            "anomaly_score": -0.85,
-            "z_score": 3.2,
-            "potential_savings_kwh": 1400.0,
-            "potential_savings_cop": 280000.0,
-            "co2_impact_kg": 210.5,
-            "description": "Consumo 45% superior al baseline detectado fuera de horario (2-5am). Posible fallo en sistema de refrigeración.",
-            "recommendation": "Verificar termostatos de refrigeradores. Revisar protocolo de apagado nocturno.",
-            "detection_method": "isolation_forest",
-            "detector_version": "1.0.0",
-            "status": "open",
-            "created_at": datetime.utcnow()
-        },
-        {
-            "id": 2,
-            "detected_at": datetime.utcnow(),
-            "anomaly_timestamp": datetime.utcnow(),
-            "sede": sede or "Duitama",
-            "sector": "Laboratorios",
-            "anomaly_type": "energy_imbalance",
-            "severity": "high",
-            "observed_value_kwh": 1200.0,
-            "expected_value_kwh": 800.0,
-            "deviation_kwh": 400.0,
-            "deviation_percentage": 50.0,
-            "anomaly_score": -0.72,
-            "z_score": 2.8,
-            "potential_savings_kwh": 400.0,
-            "potential_savings_cop": 80000.0,
-            "co2_impact_kg": 60.2,
-            "description": "Diferencia significativa entre entrada y salida de energía. Posible fuga o medición errónea.",
-            "recommendation": "Realizar auditoría de sistema eléctrico. Calibrar medidores de consumo.",
-            "detection_method": "isolation_forest",
-            "detector_version": "1.0.0",
-            "status": "open",
-            "created_at": datetime.utcnow()
-        },
-        {
-            "id": 3,
-            "detected_at": datetime.utcnow(),
-            "anomaly_timestamp": datetime.utcnow(),
-            "sede": sede or "Sogamoso",
-            "sector": "Oficinas",
-            "anomaly_type": "off_hours_usage",
-            "severity": "medium",
-            "observed_value_kwh": 890.0,
-            "expected_value_kwh": 200.0,
-            "deviation_kwh": 690.0,
-            "deviation_percentage": 345.0,
-            "anomaly_score": -0.68,
-            "z_score": 2.5,
-            "potential_savings_kwh": 690.0,
-            "potential_savings_cop": 138000.0,
-            "co2_impact_kg": 103.8,
-            "description": "Pico de consumo en fin de semana cuando debería estar cerrado. Equipos encendidos innecesariamente.",
-            "recommendation": "Implementar sistema de apagado automático para fines de semana. Sensores de ocupación.",
-            "detection_method": "isolation_forest",
-            "detector_version": "1.0.0",
-            "status": "open",
-            "created_at": datetime.utcnow()
-        },
-        {
-            "id": 4,
-            "detected_at": datetime.utcnow(),
-            "anomaly_timestamp": datetime.utcnow(),
-            "sede": sede or "Tunja",
-            "sector": "Laboratorios",
-            "anomaly_type": "hvac_inefficiency",
-            "severity": "high",
-            "observed_value_kwh": 3200.0,
-            "expected_value_kwh": 2500.0,
-            "deviation_kwh": 700.0,
-            "deviation_percentage": 28.0,
-            "anomaly_score": -0.65,
-            "z_score": 2.3,
-            "potential_savings_kwh": 700.0,
-            "potential_savings_cop": 140000.0,
-            "co2_impact_kg": 105.3,
-            "description": "Ineficiencia en sistema HVAC. Consumo 28% mayor al esperado para las condiciones actuales.",
-            "recommendation": "Mantenimiento preventivo del sistema HVAC. Revisar filtros y termostatos.",
-            "detection_method": "isolation_forest",
-            "detector_version": "1.0.0",
-            "status": "open",
-            "created_at": datetime.utcnow()
-        },
-        {
-            "id": 5,
-            "detected_at": datetime.utcnow(),
-            "anomaly_timestamp": datetime.utcnow(),
-            "sede": sede or "Chiquinquira",
-            "sector": "Aulas",
-            "anomaly_type": "lighting_waste",
-            "severity": "low",
-            "observed_value_kwh": 450.0,
-            "expected_value_kwh": 300.0,
-            "deviation_kwh": 150.0,
-            "deviation_percentage": 50.0,
-            "anomaly_score": -0.45,
-            "z_score": 1.8,
-            "potential_savings_kwh": 150.0,
-            "potential_savings_cop": 30000.0,
-            "co2_impact_kg": 22.6,
-            "description": "Luces encendidas en aulas vacías durante horas no lectivas. Detección por sensores de movimiento.",
-            "recommendation": "Instalar sensores de presencia en aulas. Programar apagado automático.",
-            "detection_method": "isolation_forest",
-            "detector_version": "1.0.0",
-            "status": "open",
-            "created_at": datetime.utcnow()
-        }
-    ]
-    
-    # Filter by sede if provided
-    if sede:
-        sample_anomalies = [a for a in sample_anomalies if a["sede"].lower() == sede.lower()]
-    
-    return sample_anomalies
+        raise HTTPException(status_code=500, detail=str(e))
