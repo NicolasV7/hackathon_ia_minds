@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
   BarChart3,
@@ -9,20 +8,22 @@ import {
   Scale,
   Brain,
   ChevronLeft,
-  Zap,
   LogOut,
+  Settings,
+  HelpCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Logo, LogoIcon } from '@/components/ui/logo';
 import ApiStatus from '@/components/ui/api-status';
 
-const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: BarChart3, label: 'Analytics', path: '/dashboard/analytics' },
-  { icon: Scale, label: 'Balances', path: '/dashboard/balances' },
-  { icon: Boxes, label: 'Modelos', path: '/dashboard/modelos' },
-  { icon: AlertTriangle, label: 'Alertas', path: '/dashboard/alertas' },
-  { icon: Brain, label: 'Explicabilidad', path: '/dashboard/explicabilidad' },
+const mainMenuItems = [
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', description: 'Vista general' },
+  { icon: BarChart3, label: 'Analytics', path: '/dashboard/analytics', description: 'Analisis detallado' },
+  { icon: Scale, label: 'Balances', path: '/dashboard/balances', description: 'Balance energetico' },
+  { icon: Boxes, label: 'Modelos', path: '/dashboard/modelos', description: 'ML Models' },
+  { icon: AlertTriangle, label: 'Alertas', path: '/dashboard/alertas', description: 'Anomalias' },
+  { icon: Brain, label: 'Explicabilidad', path: '/dashboard/explicabilidad', description: 'SHAP values' },
 ];
 
 interface DashboardLayoutProps {
@@ -36,83 +37,156 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
-      <motion.aside
-        initial={false}
-        animate={{ width: collapsed ? 80 : 240 }}
-        transition={{ duration: 0.15, ease: "easeOut" }}
-        className="fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border flex flex-col z-40"
+      <aside
+        className={cn(
+          'fixed left-0 top-0 h-screen bg-[#0a0a0a] border-r border-border/50 flex flex-col z-40 transition-all duration-200 ease-out',
+          collapsed ? 'w-[72px]' : 'w-[260px]'
+        )}
+        role="navigation"
+        aria-label="Menu principal"
       >
-        {/* Logo */}
-        <div className="p-4 border-b border-sidebar-border">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-              <Zap className="w-6 h-6 text-primary-foreground" />
-            </div>
-            {!collapsed && (
-              <div className="overflow-hidden">
-                <h1 className="font-bold text-lg text-foreground">UPTC Energy</h1>
-                <p className="text-xs text-muted-foreground">IA Platform</p>
-              </div>
+        {/* Logo Section */}
+        <div className={cn(
+          'h-16 flex items-center border-b border-border/50',
+          collapsed ? 'justify-center px-2' : 'px-4'
+        )}>
+          <Link 
+            to="/" 
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg"
+            aria-label="Ir al inicio"
+          >
+            {collapsed ? (
+              <LogoIcon size="sm" />
+            ) : (
+              <Logo size="sm" />
             )}
           </Link>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path || 
-              (item.path === '/dashboard' && location.pathname === '/dashboard');
+        {/* Main Navigation */}
+        <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+          <p className={cn(
+            'text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-3',
+            collapsed ? 'sr-only' : 'px-3'
+          )}>
+            Menu
+          </p>
+          
+          {mainMenuItems.map((item) => {
+            const isActive = location.pathname === item.path;
             
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  'sidebar-item',
-                  isActive && 'active'
+                  'group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150',
+                  'text-muted-foreground hover:text-foreground hover:bg-secondary/80',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  isActive && 'bg-primary/10 text-primary border-l-2 border-primary -ml-[2px] pl-[14px]',
+                  collapsed && 'justify-center px-0'
                 )}
+                title={collapsed ? item.label : undefined}
+                aria-current={isActive ? 'page' : undefined}
               >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
+                <item.icon className={cn(
+                  'w-5 h-5 flex-shrink-0 transition-colors',
+                  isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+                )} />
+                {!collapsed && (
+                  <div className="flex flex-col min-w-0">
+                    <span className={cn(
+                      'text-sm font-medium truncate',
+                      isActive && 'text-primary'
+                    )}>
+                      {item.label}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground truncate">
+                      {item.description}
+                    </span>
+                  </div>
+                )}
               </Link>
             );
           })}
         </nav>
 
-        {/* Collapse Button */}
-        <div className="p-3 border-t border-sidebar-border">
-          <ApiStatus className="mb-3" />
+        {/* Bottom Section */}
+        <div className="p-3 border-t border-border/50 space-y-2">
+          {/* API Status */}
+          <div className={cn(
+            'rounded-lg bg-secondary/30 p-2',
+            collapsed && 'flex justify-center'
+          )}>
+            <ApiStatus className={collapsed ? '' : ''} />
+          </div>
+
+          {/* Secondary Actions */}
+          {!collapsed && (
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-1 justify-start gap-2 text-muted-foreground hover:text-foreground h-9"
+                disabled
+              >
+                <Settings className="w-4 h-4" />
+                <span className="text-xs">Ajustes</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-1 justify-start gap-2 text-muted-foreground hover:text-foreground h-9"
+                disabled
+              >
+                <HelpCircle className="w-4 h-4" />
+                <span className="text-xs">Ayuda</span>
+              </Button>
+            </div>
+          )}
+
+          {/* Collapse Toggle */}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setCollapsed(!collapsed)}
-            className="w-full justify-center"
+            className={cn(
+              'w-full h-9 text-muted-foreground hover:text-foreground',
+              collapsed ? 'justify-center' : 'justify-between'
+            )}
+            aria-label={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
           >
+            {!collapsed && <span className="text-xs">Colapsar</span>}
             <ChevronLeft className={cn(
-              'w-5 h-5 transition-transform',
+              'w-4 h-4 transition-transform duration-200',
               collapsed && 'rotate-180'
             )} />
           </Button>
           
-          <Link to="/">
+          {/* Exit Button */}
+          <Link to="/" className="block">
             <Button
               variant="ghost"
               size="sm"
-              className="w-full mt-2 gap-2 text-muted-foreground hover:text-foreground"
+              className={cn(
+                'w-full h-9 text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:text-destructive',
+                collapsed ? 'justify-center' : 'justify-start gap-2'
+              )}
             >
               <LogOut className="w-4 h-4" />
-              {!collapsed && <span>Salir</span>}
+              {!collapsed && <span className="text-xs">Salir al inicio</span>}
             </Button>
           </Link>
         </div>
-      </motion.aside>
+      </aside>
 
       {/* Main Content */}
       <main
         className={cn(
-          'flex-1 transition-all duration-150 ease-out',
-          collapsed ? 'ml-20' : 'ml-60'
+          'flex-1 transition-all duration-200 ease-out min-h-screen',
+          collapsed ? 'ml-[72px]' : 'ml-[260px]'
         )}
+        role="main"
       >
         {children}
       </main>

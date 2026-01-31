@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Activity, Shield, BarChart3, Cpu, ChevronRight } from 'lucide-react';
+import { ArrowRight, Activity, Shield, BarChart3, Cpu, ChevronRight, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MapaSedes } from '@/components/landing/MapaSedes';
+import { Logo } from '@/components/ui/logo';
 
 // Metrics data with tabular numbers for alignment
 const metrics = [
@@ -59,16 +60,10 @@ export default function LandingPage() {
         <nav className="container mx-auto px-6 h-16 flex items-center justify-between" aria-label="Navegacion principal">
           <Link 
             to="/" 
-            className="flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md"
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md"
             aria-label="UPTC EcoEnergy - Inicio"
           >
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center" aria-hidden="true">
-              <Activity className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-base font-semibold leading-none tracking-tight">UPTC EcoEnergy</span>
-              <span className="text-[11px] text-muted-foreground leading-none mt-0.5">Gestion Energetica</span>
-            </div>
+            <Logo size="sm" />
           </Link>
           
           <div className="hidden md:flex items-center gap-1">
@@ -91,16 +86,17 @@ export default function LandingPage() {
                 size="sm" 
                 className="gap-2 font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                Acceder
-                <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                <LogIn className="w-4 h-4" aria-hidden="true" />
+                Ingresar
               </Button>
             </Link>
           </div>
 
           {/* Mobile menu button */}
           <Link to="/dashboard" className="md:hidden">
-            <Button variant="default" size="sm" className="focus-visible:ring-2 focus-visible:ring-ring">
-              Acceder
+            <Button variant="default" size="sm" className="gap-2 focus-visible:ring-2 focus-visible:ring-ring">
+              <LogIn className="w-4 h-4" aria-hidden="true" />
+              Ingresar
             </Button>
           </Link>
         </nav>
@@ -108,12 +104,64 @@ export default function LandingPage() {
 
       <main id="main-content">
         {/* Hero Section */}
-        <section className="pt-32 pb-24 px-6 lg:pt-40 lg:pb-32">
-          <div className="container mx-auto max-w-5xl">
+        <section className="relative pt-32 pb-24 px-6 lg:pt-40 lg:pb-32 overflow-hidden">
+          {/* Background with gradient and pattern */}
+          <div className="absolute inset-0 -z-10">
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
+            
+            {/* Grid pattern */}
+            <div 
+              className="absolute inset-0 opacity-[0.03]"
+              style={{
+                backgroundImage: `
+                  linear-gradient(to right, hsl(var(--foreground)) 1px, transparent 1px),
+                  linear-gradient(to bottom, hsl(var(--foreground)) 1px, transparent 1px)
+                `,
+                backgroundSize: '60px 60px',
+              }}
+            />
+            
+            {/* Radial glow */}
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-primary/10 rounded-full blur-[120px] opacity-50" />
+            
+            {/* Abstract shapes */}
+            <div className="absolute top-32 right-[10%] w-72 h-72 border border-primary/10 rounded-full opacity-40" />
+            <div className="absolute top-48 right-[15%] w-48 h-48 border border-primary/20 rounded-full opacity-30" />
+            <div className="absolute bottom-32 left-[5%] w-96 h-96 border border-primary/5 rounded-full opacity-30" />
+            
+            {/* Energy visualization lines */}
+            <svg className="absolute top-20 left-0 w-full h-full opacity-10 pointer-events-none" aria-hidden="true">
+              <defs>
+                <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+                  <stop offset="50%" stopColor="hsl(var(--primary))" stopOpacity="1" />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path 
+                d="M0,200 Q400,100 800,200 T1600,200" 
+                stroke="url(#lineGradient)" 
+                strokeWidth="1" 
+                fill="none"
+                className="animate-pulse"
+              />
+              <path 
+                d="M0,300 Q400,400 800,300 T1600,300" 
+                stroke="url(#lineGradient)" 
+                strokeWidth="1" 
+                fill="none"
+                className="animate-pulse"
+                style={{ animationDelay: '1s' }}
+              />
+            </svg>
+          </div>
+
+          <div className="container mx-auto max-w-5xl relative">
             <div className="text-center">
               {/* Eyebrow */}
               <p className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-secondary/50 text-xs font-medium text-muted-foreground mb-8">
-                <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" aria-hidden="true" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
                 Sistema operativo 24/7
               </p>
               
@@ -121,7 +169,7 @@ export default function LandingPage() {
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-balance">
                 Gestion energetica
                 <br />
-                <span className="bg-gradient-to-r from-primary via-primary to-amber-400 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-primary via-amber-400 to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient_3s_linear_infinite]">
                   basada en datos
                 </span>
               </h1>
@@ -138,7 +186,7 @@ export default function LandingPage() {
                 <Link to="/dashboard">
                   <Button 
                     size="lg" 
-                    className="gap-2 text-base px-8 h-12 font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-shadow focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="gap-2 text-base px-8 h-12 font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
                     Ver Dashboard
                     <ArrowRight className="w-4 h-4" aria-hidden="true" />

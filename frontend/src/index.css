@@ -212,6 +212,18 @@
       box-shadow: 0 0 20px hsl(45 100% 51% / 0.5);
     }
   }
+
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
 }
 
 /* Leaflet Map Styles */
