@@ -638,3 +638,353 @@ def split_train_test_temporal(
     test = df[df['timestamp'] >= test_start]
     
     return train, val, test
+
+
+# ============================================================================
+# NEW MODEL HELPERS - For modelo_co2.pkl and modelo_energia_B2.pkl
+# ============================================================================
+
+# Feature order for CO2 model (33 features)
+CO2_FEATURE_ORDER = [
+    "energia_comedor_kwh",
+    "energia_salones_kwh",
+    "energia_laboratorios_kwh",
+    "energia_auditorios_kwh",
+    "energia_oficinas_kwh",
+    "agua_litros",
+    "temperatura_exterior_c",
+    "ocupacion_pct",
+    "hora",
+    "dia_semana",
+    "mes",
+    "trimestre",
+    "año",
+    "es_fin_semana",
+    "es_festivo",
+    "es_semana_parciales",
+    "es_semana_finales",
+    "sede_Duitama",
+    "sede_Sogamoso",
+    "sede_Tunja",
+    "dia_nombre_Jueves",
+    "dia_nombre_Lunes",
+    "dia_nombre_Martes",
+    "dia_nombre_Miércoles",
+    "dia_nombre_Sábado",
+    "dia_nombre_Viernes",
+    "periodo_academico_Semestre_1",
+    "periodo_academico_semestre1",
+    "periodo_academico_semestre_1",
+    "periodo_academico_semestre_2",
+    "periodo_academico_vacaciones",
+    "periodo_academico_vacaciones_fin",
+    "periodo_academico_vacaciones_mitad"
+]
+
+# Feature order for Energy B2 model (35 features)
+ENERGY_B2_FEATURE_ORDER = [
+    "reading_id",
+    "energia_comedor_kwh",
+    "energia_salones_kwh",
+    "energia_laboratorios_kwh",
+    "energia_auditorios_kwh",
+    "energia_oficinas_kwh",
+    "agua_litros",
+    "temperatura_exterior_c",
+    "ocupacion_pct",
+    "hora",
+    "dia_semana",
+    "mes",
+    "trimestre",
+    "año",
+    "es_fin_semana",
+    "es_festivo",
+    "es_semana_parciales",
+    "es_semana_finales",
+    "co2_kg",
+    "sede_Duitama",
+    "sede_Sogamoso",
+    "sede_Tunja",
+    "dia_nombre_Jueves",
+    "dia_nombre_Lunes",
+    "dia_nombre_Martes",
+    "dia_nombre_Miércoles",
+    "dia_nombre_Sábado",
+    "dia_nombre_Viernes",
+    "periodo_academico_Semestre_1",
+    "periodo_academico_semestre1",
+    "periodo_academico_semestre_1",
+    "periodo_academico_semestre_2",
+    "periodo_academico_vacaciones",
+    "periodo_academico_vacaciones_fin",
+    "periodo_academico_vacaciones_mitad"
+]
+
+# Columns that need PowerTransformer
+COLS_TO_TRANSFORM = [
+    "energia_total_kwh",
+    "energia_comedor_kwh",
+    "energia_salones_kwh",
+    "energia_laboratorios_kwh",
+    "energia_auditorios_kwh",
+    "energia_oficinas_kwh",
+    "potencia_total_kw",
+    "agua_litros",
+    "ocupacion_pct",
+    "co2_kg"
+]
+
+# Columns that need Scaler
+COLS_TO_SCALE = [
+    "energia_total_kwh",
+    "energia_comedor_kwh",
+    "energia_salones_kwh",
+    "energia_laboratorios_kwh",
+    "energia_auditorios_kwh",
+    "energia_oficinas_kwh",
+    "potencia_total_kw",
+    "agua_litros",
+    "temperatura_exterior_c",
+    "ocupacion_pct",
+    "hora",
+    "dia_semana",
+    "mes",
+    "trimestre",
+    "año",
+    "co2_kg"
+]
+
+# Day name mapping (Spanish)
+DAY_NAMES = {
+    0: "Lunes",
+    1: "Martes", 
+    2: "Miércoles",
+    3: "Jueves",
+    4: "Viernes",
+    5: "Sábado",
+    6: "Domingo"
+}
+
+
+def get_periodo_academico_from_date(timestamp: datetime) -> str:
+    """
+    Determine academic period from date.
+    
+    Args:
+        timestamp: Date to check
+        
+    Returns:
+        Period name string
+    """
+    month = timestamp.month
+    day = timestamp.day
+    
+    # Vacation periods
+    if month == 1 or (month == 12 and day > 15):
+        return "vacaciones_fin"
+    elif month in [6, 7]:
+        return "vacaciones_mitad"
+    # Regular semesters
+    elif month in [2, 3, 4, 5]:
+        return "semestre_1"
+    elif month in [8, 9, 10, 11] or (month == 12 and day <= 15):
+        return "semestre_2"
+    else:
+        return "vacaciones"
+
+
+def prepare_features_for_co2_model(
+    energia_comedor_kwh: float,
+    energia_salones_kwh: float,
+    energia_laboratorios_kwh: float,
+    energia_auditorios_kwh: float,
+    energia_oficinas_kwh: float,
+    agua_litros: float,
+    temperatura_exterior_c: float,
+    ocupacion_pct: float,
+    sede: str,
+    timestamp: datetime,
+    es_festivo: bool = False,
+    es_semana_parciales: bool = False,
+    es_semana_finales: bool = False,
+    periodo_academico: Optional[str] = None
+) -> Dict[str, float]:
+    """
+    Prepare features dictionary for CO2 model prediction.
+    Returns features in the exact order required by modelo_co2.pkl.
+    
+    Args:
+        All input features as specified
+        
+    Returns:
+        Dictionary with all 33 features in correct order
+    """
+    # Extract temporal features
+    hora = timestamp.hour
+    dia_semana = timestamp.weekday()
+    mes = timestamp.month
+    trimestre = (mes - 1) // 3 + 1
+    año = timestamp.year
+    es_fin_semana = 1 if dia_semana >= 5 else 0
+    
+    # Get day name
+    dia_nombre = DAY_NAMES.get(dia_semana, "Lunes")
+    
+    # Get periodo academico if not provided
+    if periodo_academico is None:
+        periodo_academico = get_periodo_academico_from_date(timestamp)
+    
+    # Build features dict
+    features = {
+        # Energy consumption
+        "energia_comedor_kwh": energia_comedor_kwh,
+        "energia_salones_kwh": energia_salones_kwh,
+        "energia_laboratorios_kwh": energia_laboratorios_kwh,
+        "energia_auditorios_kwh": energia_auditorios_kwh,
+        "energia_oficinas_kwh": energia_oficinas_kwh,
+        
+        # Other variables
+        "agua_litros": agua_litros,
+        "temperatura_exterior_c": temperatura_exterior_c,
+        "ocupacion_pct": ocupacion_pct,
+        
+        # Temporal
+        "hora": hora,
+        "dia_semana": dia_semana,
+        "mes": mes,
+        "trimestre": trimestre,
+        "año": año,
+        
+        # Binary flags
+        "es_fin_semana": es_fin_semana,
+        "es_festivo": 1 if es_festivo else 0,
+        "es_semana_parciales": 1 if es_semana_parciales else 0,
+        "es_semana_finales": 1 if es_semana_finales else 0,
+        
+        # Sede one-hot encoding
+        "sede_Duitama": 1 if sede == "Duitama" else 0,
+        "sede_Sogamoso": 1 if sede == "Sogamoso" else 0,
+        "sede_Tunja": 1 if sede == "Tunja" else 0,
+        
+        # Day name one-hot encoding
+        "dia_nombre_Jueves": 1 if dia_nombre == "Jueves" else 0,
+        "dia_nombre_Lunes": 1 if dia_nombre == "Lunes" else 0,
+        "dia_nombre_Martes": 1 if dia_nombre == "Martes" else 0,
+        "dia_nombre_Miércoles": 1 if dia_nombre == "Miércoles" else 0,
+        "dia_nombre_Sábado": 1 if dia_nombre == "Sábado" else 0,
+        "dia_nombre_Viernes": 1 if dia_nombre == "Viernes" else 0,
+        
+        # Periodo academico one-hot encoding
+        "periodo_academico_Semestre_1": 1 if periodo_academico == "Semestre_1" else 0,
+        "periodo_academico_semestre1": 1 if periodo_academico == "semestre1" else 0,
+        "periodo_academico_semestre_1": 1 if periodo_academico == "semestre_1" else 0,
+        "periodo_academico_semestre_2": 1 if periodo_academico == "semestre_2" else 0,
+        "periodo_academico_vacaciones": 1 if periodo_academico == "vacaciones" else 0,
+        "periodo_academico_vacaciones_fin": 1 if periodo_academico == "vacaciones_fin" else 0,
+        "periodo_academico_vacaciones_mitad": 1 if periodo_academico == "vacaciones_mitad" else 0,
+    }
+    
+    return features
+
+
+def prepare_features_for_energy_model(
+    reading_id: int,
+    energia_comedor_kwh: float,
+    energia_salones_kwh: float,
+    energia_laboratorios_kwh: float,
+    energia_auditorios_kwh: float,
+    energia_oficinas_kwh: float,
+    agua_litros: float,
+    temperatura_exterior_c: float,
+    ocupacion_pct: float,
+    co2_kg: float,
+    sede: str,
+    timestamp: datetime,
+    es_festivo: bool = False,
+    es_semana_parciales: bool = False,
+    es_semana_finales: bool = False,
+    periodo_academico: Optional[str] = None
+) -> Dict[str, float]:
+    """
+    Prepare features dictionary for Energy B2 model prediction.
+    Returns features in the exact order required by modelo_energia_B2.pkl.
+    
+    Args:
+        All input features as specified (includes reading_id and co2_kg)
+        
+    Returns:
+        Dictionary with all 35 features in correct order
+    """
+    # Get CO2 features first (they share most features)
+    co2_features = prepare_features_for_co2_model(
+        energia_comedor_kwh=energia_comedor_kwh,
+        energia_salones_kwh=energia_salones_kwh,
+        energia_laboratorios_kwh=energia_laboratorios_kwh,
+        energia_auditorios_kwh=energia_auditorios_kwh,
+        energia_oficinas_kwh=energia_oficinas_kwh,
+        agua_litros=agua_litros,
+        temperatura_exterior_c=temperatura_exterior_c,
+        ocupacion_pct=ocupacion_pct,
+        sede=sede,
+        timestamp=timestamp,
+        es_festivo=es_festivo,
+        es_semana_parciales=es_semana_parciales,
+        es_semana_finales=es_semana_finales,
+        periodo_academico=periodo_academico
+    )
+    
+    # Add the extra features for energy model
+    energy_features = {
+        "reading_id": reading_id,
+        **co2_features,
+        "co2_kg": co2_kg
+    }
+    
+    return energy_features
+
+
+def features_dict_to_array(features: Dict[str, float], feature_order: List[str]) -> np.ndarray:
+    """
+    Convert features dictionary to numpy array in specified order.
+    
+    Args:
+        features: Dictionary of feature name -> value
+        feature_order: List of feature names in required order
+        
+    Returns:
+        numpy array with features in correct order
+    """
+    return np.array([[features[col] for col in feature_order]])
+
+
+def validate_features_not_null(features: Dict[str, float]) -> bool:
+    """
+    Check that no features are null/None.
+    
+    Args:
+        features: Dictionary of features
+        
+    Returns:
+        True if all features are valid, False otherwise
+    """
+    for key, value in features.items():
+        if value is None or (isinstance(value, float) and np.isnan(value)):
+            return False
+    return True
+
+
+def get_missing_features(features: Dict[str, float]) -> List[str]:
+    """
+    Get list of features that are null/None.
+    
+    Args:
+        features: Dictionary of features
+        
+    Returns:
+        List of feature names that are null
+    """
+    missing = []
+    for key, value in features.items():
+        if value is None or (isinstance(value, float) and np.isnan(value)):
+            missing.append(key)
+    return missing

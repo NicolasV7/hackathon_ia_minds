@@ -1,16 +1,22 @@
 """
-Prediction service for energy consumption forecasting.
+Prediction service for CO2 and Energy consumption forecasting.
+Updated to use new ML models from newmodels/ folder.
 """
 
 from typing import List, Optional, Dict
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
 from app.ml.inference import ml_service
 from app.repositories.prediction_repository import PredictionRepository
-from app.repositories.consumption_repository import ConsumptionRepository
-from app.schemas.prediction import PredictionCreate, PredictionResponse
+from app.schemas.prediction import (
+    PredictionCreate, 
+    PredictionResponse,
+    PredictionRequest,
+    CO2PredictionResponse,
+    EnergyPredictionResponse
+)
 
 logger = logging.getLogger(__name__)
 
@@ -23,164 +29,232 @@ class PredictionService:
     
     def __init__(self):
         self.prediction_repo = PredictionRepository()
-        self.consumption_repo = ConsumptionRepository()
     
     async def create_prediction(
         self,
         db: AsyncSession,
-        timestamp: datetime,
-        sede: str,
-        temperatura_exterior_c: float = 20.0,
-        ocupacion_pct: float = 70.0,
-        es_festivo: bool = False,
-        es_semana_parciales: bool = False,
-        es_semana_finales: bool = False
+        request: PredictionRequest
     ) -> PredictionResponse:
         """
-        Create a single prediction and save to database.
+        Create a combined CO2 and Energy prediction and save to database.
+        
+        This method:
+        1. Predicts CO2 using the LightGBM model
+        2. Uses the CO2 prediction to predict Energy using the Ridge model
+        3. Saves the prediction to the database
         
         Args:
             db: Database session
-            timestamp: Timestamp for prediction
-            sede: Sede name
-            temperatura_exterior_c: Exterior temperature
-            ocupacion_pct: Occupancy percentage
-            es_festivo: Is holiday
-            es_semana_parciales: Is midterm week
-            es_semana_finales: Is finals week
+            request: PredictionRequest with all required inputs
             
         Returns:
-            PredictionResponse with prediction data
+            PredictionResponse with both predictions
         """
         try:
-            # Get recent consumption for lag features
-            recent_data = await self.consumption_repo.get_latest_by_sede(
-                db=db,
+            # Use timestamp from request or current time
+            timestamp = request.timestamp or datetime.now()
+            sede = request.sede.value if hasattr(request.sede, 'value') else str(request.sede)
+            
+            # Get periodo_academico value if provided
+            periodo = None
+            if request.periodo_academico:
+                periodo = request.periodo_academico.value if hasattr(request.periodo_academico, 'value') else str(request.periodo_academico)
+            
+            # Make combined prediction using ML service
+            prediction_result = ml_service.predict_combined(
+                energia_comedor_kwh=request.energia_comedor_kwh,
+                energia_salones_kwh=request.energia_salones_kwh,
+                energia_laboratorios_kwh=request.energia_laboratorios_kwh,
+                energia_auditorios_kwh=request.energia_auditorios_kwh,
+                energia_oficinas_kwh=request.energia_oficinas_kwh,
+                agua_litros=request.agua_litros,
+                temperatura_exterior_c=request.temperatura_exterior_c,
+                ocupacion_pct=request.ocupacion_pct,
                 sede=sede,
-                limit=168  # Last week
-            )
-            
-            # Calculate lag and rolling features from recent data
-            lag_features = None
-            rolling_features = None
-            
-            if recent_data:
-                # Extract values for lag features
-                energia_values = [r.energia_total_kwh for r in recent_data]
-                energia_values.reverse()  # Order chronologically
-                
-                if len(energia_values) >= 1:
-                    lag_features = {
-                        'energia_total_kwh_lag_1h': energia_values[-1] if len(energia_values) >= 1 else 0,
-                        'energia_total_kwh_lag_24h': energia_values[-24] if len(energia_values) >= 24 else energia_values[-1],
-                        'energia_total_kwh_lag_168h': energia_values[-168] if len(energia_values) >= 168 else energia_values[-1]
-                    }
-                    
-                    # Calculate rolling features
-                    import numpy as np
-                    rolling_features = {
-                        'energia_total_kwh_rolling_mean_24h': float(np.mean(energia_values[-24:])) if len(energia_values) >= 24 else float(np.mean(energia_values)),
-                        'energia_total_kwh_rolling_std_24h': float(np.std(energia_values[-24:])) if len(energia_values) >= 24 else 0.0,
-                        'energia_total_kwh_rolling_max_24h': float(np.max(energia_values[-24:])) if len(energia_values) >= 24 else float(np.max(energia_values)),
-                        'energia_total_kwh_rolling_mean_168h': float(np.mean(energia_values[-168:])) if len(energia_values) >= 168 else float(np.mean(energia_values)),
-                        'energia_total_kwh_rolling_std_168h': float(np.std(energia_values[-168:])) if len(energia_values) >= 168 else 0.0,
-                        'energia_total_kwh_rolling_max_168h': float(np.max(energia_values[-168:])) if len(energia_values) >= 168 else float(np.max(energia_values))
-                    }
-            
-            # Make prediction using ML service
-            predicted_kwh = ml_service.predict_consumption(
                 timestamp=timestamp,
-                sede=sede,
-                temperatura_exterior_c=temperatura_exterior_c,
-                ocupacion_pct=ocupacion_pct,
-                es_festivo=es_festivo,
-                es_semana_parciales=es_semana_parciales,
-                es_semana_finales=es_semana_finales,
-                lag_features=lag_features,
-                rolling_features=rolling_features
+                es_festivo=request.es_festivo,
+                es_semana_parciales=request.es_semana_parciales,
+                es_semana_finales=request.es_semana_finales,
+                periodo_academico=periodo
             )
-            
-            # Calculate confidence score (simplified - can be enhanced)
-            confidence_score = 0.85 if lag_features else 0.70
             
             # Save to database
             prediction_data = PredictionCreate(
                 sede=sede,
                 prediction_timestamp=timestamp,
-                predicted_kwh=predicted_kwh,
-                confidence_score=confidence_score,
-                temperatura_exterior_c=temperatura_exterior_c,
-                ocupacion_pct=ocupacion_pct,
-                es_festivo=es_festivo,
-                es_semana_parciales=es_semana_parciales,
-                es_semana_finales=es_semana_finales
+                predicted_co2_kg=prediction_result["predicted_co2_kg"],
+                predicted_energy_kwh=prediction_result["predicted_energy_kwh"],
+                confidence_co2=prediction_result["confidence_co2"],
+                confidence_energy=prediction_result["confidence_energy"],
+                energia_comedor_kwh=request.energia_comedor_kwh,
+                energia_salones_kwh=request.energia_salones_kwh,
+                energia_laboratorios_kwh=request.energia_laboratorios_kwh,
+                energia_auditorios_kwh=request.energia_auditorios_kwh,
+                energia_oficinas_kwh=request.energia_oficinas_kwh,
+                agua_litros=request.agua_litros,
+                temperatura_exterior_c=request.temperatura_exterior_c,
+                ocupacion_pct=request.ocupacion_pct,
+                es_festivo=request.es_festivo,
+                es_semana_parciales=request.es_semana_parciales,
+                es_semana_finales=request.es_semana_finales
             )
             
             db_prediction = await self.prediction_repo.create(db, prediction_data)
             
-            return PredictionResponse.model_validate(db_prediction)
+            # Build response
+            return PredictionResponse(
+                id=db_prediction.id if hasattr(db_prediction, 'id') else None,
+                sede=sede,
+                timestamp=timestamp,
+                predicted_co2_kg=prediction_result["predicted_co2_kg"],
+                predicted_energy_kwh=prediction_result["predicted_energy_kwh"],
+                confidence_co2=prediction_result["confidence_co2"],
+                confidence_energy=prediction_result["confidence_energy"],
+                energia_comedor_kwh=request.energia_comedor_kwh,
+                energia_salones_kwh=request.energia_salones_kwh,
+                energia_laboratorios_kwh=request.energia_laboratorios_kwh,
+                energia_auditorios_kwh=request.energia_auditorios_kwh,
+                energia_oficinas_kwh=request.energia_oficinas_kwh,
+                agua_litros=request.agua_litros,
+                temperatura_exterior_c=request.temperatura_exterior_c,
+                ocupacion_pct=request.ocupacion_pct,
+                created_at=datetime.now()
+            )
             
         except Exception as e:
             logger.error(f"Error creating prediction: {str(e)}")
             raise
     
+    async def predict_co2_only(
+        self,
+        request: PredictionRequest
+    ) -> CO2PredictionResponse:
+        """
+        Predict only CO2 emissions (without saving to DB).
+        
+        Args:
+            request: PredictionRequest with required inputs
+            
+        Returns:
+            CO2PredictionResponse with prediction
+        """
+        try:
+            timestamp = request.timestamp or datetime.now()
+            sede = request.sede.value if hasattr(request.sede, 'value') else str(request.sede)
+            
+            periodo = None
+            if request.periodo_academico:
+                periodo = request.periodo_academico.value if hasattr(request.periodo_academico, 'value') else str(request.periodo_academico)
+            
+            predicted_co2 = ml_service.predict_co2(
+                energia_comedor_kwh=request.energia_comedor_kwh,
+                energia_salones_kwh=request.energia_salones_kwh,
+                energia_laboratorios_kwh=request.energia_laboratorios_kwh,
+                energia_auditorios_kwh=request.energia_auditorios_kwh,
+                energia_oficinas_kwh=request.energia_oficinas_kwh,
+                agua_litros=request.agua_litros,
+                temperatura_exterior_c=request.temperatura_exterior_c,
+                ocupacion_pct=request.ocupacion_pct,
+                sede=sede,
+                timestamp=timestamp,
+                es_festivo=request.es_festivo,
+                es_semana_parciales=request.es_semana_parciales,
+                es_semana_finales=request.es_semana_finales,
+                periodo_academico=periodo
+            )
+            
+            return CO2PredictionResponse(
+                predicted_co2_kg=predicted_co2,
+                confidence=0.893,
+                timestamp=timestamp,
+                sede=sede
+            )
+            
+        except Exception as e:
+            logger.error(f"Error predicting CO2: {str(e)}")
+            raise
+    
+    async def predict_energy_only(
+        self,
+        reading_id: int,
+        co2_kg: float,
+        request: PredictionRequest
+    ) -> EnergyPredictionResponse:
+        """
+        Predict only Energy consumption (requires CO2 value).
+        
+        Args:
+            reading_id: Unique reading identifier
+            co2_kg: CO2 emissions value (can be from prediction)
+            request: PredictionRequest with required inputs
+            
+        Returns:
+            EnergyPredictionResponse with prediction
+        """
+        try:
+            timestamp = request.timestamp or datetime.now()
+            sede = request.sede.value if hasattr(request.sede, 'value') else str(request.sede)
+            
+            periodo = None
+            if request.periodo_academico:
+                periodo = request.periodo_academico.value if hasattr(request.periodo_academico, 'value') else str(request.periodo_academico)
+            
+            predicted_energy = ml_service.predict_energy(
+                reading_id=reading_id,
+                energia_comedor_kwh=request.energia_comedor_kwh,
+                energia_salones_kwh=request.energia_salones_kwh,
+                energia_laboratorios_kwh=request.energia_laboratorios_kwh,
+                energia_auditorios_kwh=request.energia_auditorios_kwh,
+                energia_oficinas_kwh=request.energia_oficinas_kwh,
+                agua_litros=request.agua_litros,
+                temperatura_exterior_c=request.temperatura_exterior_c,
+                ocupacion_pct=request.ocupacion_pct,
+                co2_kg=co2_kg,
+                sede=sede,
+                timestamp=timestamp,
+                es_festivo=request.es_festivo,
+                es_semana_parciales=request.es_semana_parciales,
+                es_semana_finales=request.es_semana_finales,
+                periodo_academico=periodo
+            )
+            
+            return EnergyPredictionResponse(
+                predicted_energy_kwh=predicted_energy,
+                confidence=0.998,
+                timestamp=timestamp,
+                sede=sede,
+                co2_kg_used=co2_kg
+            )
+            
+        except Exception as e:
+            logger.error(f"Error predicting energy: {str(e)}")
+            raise
+    
     async def create_batch_predictions(
         self,
         db: AsyncSession,
-        sede: str,
-        start_timestamp: datetime,
-        horizon_hours: int = 24,
-        temperatura_exterior_c: float = 20.0,
-        ocupacion_pct: float = 70.0
+        requests: List[PredictionRequest]
     ) -> List[PredictionResponse]:
         """
-        Create batch predictions for multiple hours ahead.
+        Create batch predictions for multiple inputs.
         
         Args:
             db: Database session
-            sede: Sede name
-            start_timestamp: Starting timestamp
-            horizon_hours: Number of hours to predict
-            temperatura_exterior_c: Exterior temperature
-            ocupacion_pct: Occupancy percentage
+            requests: List of PredictionRequest objects
             
         Returns:
             List of PredictionResponse objects
         """
-        try:
-            # Use ML service's predict_horizon method
-            predictions_data = ml_service.predict_horizon(
-                sede=sede,
-                start_timestamp=start_timestamp,
-                horizon_hours=horizon_hours,
-                temperatura_exterior_c=temperatura_exterior_c,
-                ocupacion_pct=ocupacion_pct
-            )
-            
-            # Save all predictions to database
-            predictions_responses = []
-            
-            for pred_data in predictions_data:
-                prediction_create = PredictionCreate(
-                    sede=sede,
-                    prediction_timestamp=pred_data['timestamp'],
-                    predicted_kwh=pred_data['predicted_kwh'],
-                    confidence_score=0.80,  # Slightly lower for multi-step
-                    temperatura_exterior_c=temperatura_exterior_c,
-                    ocupacion_pct=ocupacion_pct,
-                    es_festivo=False,
-                    es_semana_parciales=False,
-                    es_semana_finales=False
-                )
-                
-                db_prediction = await self.prediction_repo.create(db, prediction_create)
-                predictions_responses.append(PredictionResponse.model_validate(db_prediction))
-            
-            return predictions_responses
-            
-        except Exception as e:
-            logger.error(f"Error creating batch predictions: {str(e)}")
-            raise
+        responses = []
+        for request in requests:
+            try:
+                response = await self.create_prediction(db, request)
+                responses.append(response)
+            except Exception as e:
+                logger.error(f"Error in batch prediction: {str(e)}")
+                # Continue with other predictions
+        
+        return responses
     
     async def get_predictions_by_sede(
         self,
@@ -262,3 +336,12 @@ class PredictionService:
         )
         
         return [PredictionResponse.model_validate(p) for p in predictions]
+    
+    def get_model_info(self) -> Dict:
+        """
+        Get information about the loaded models.
+        
+        Returns:
+            Dictionary with model information
+        """
+        return ml_service.get_model_info()

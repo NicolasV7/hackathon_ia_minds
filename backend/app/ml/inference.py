@@ -1,21 +1,35 @@
 """
-ML Inference Service for loading trained models and making predictions.
+ML Inference Service for CO2 and Energy prediction models.
+
+This module loads and uses the trained models:
+- modelo_co2.pkl (LightGBM) - Predicts CO2 emissions
+- modelo_energia_B2.pkl (Ridge) - Predicts energy consumption
+
+Preprocessing pipeline:
+1. Prepare features in exact order
+2. Apply PowerTransformer to specified columns
+3. Apply Scaler to specified columns
+4. Pass to model for prediction
 """
 
 import joblib
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple, Any
+from datetime import datetime
 import logging
 
 from .features import (
-    prepare_prediction_features, 
-    get_feature_columns,
-    add_cyclical_features,
-    fix_periodo_academico,
-    encode_categorical
+    CO2_FEATURE_ORDER,
+    ENERGY_B2_FEATURE_ORDER,
+    COLS_TO_TRANSFORM,
+    COLS_TO_SCALE,
+    prepare_features_for_co2_model,
+    prepare_features_for_energy_model,
+    features_dict_to_array,
+    validate_features_not_null,
+    get_missing_features
 )
 
 logger = logging.getLogger(__name__)
@@ -24,10 +38,10 @@ logger = logging.getLogger(__name__)
 class MLService:
     """
     Service for loading and using trained ML models.
-    Handles both prediction and anomaly detection.
+    Handles CO2 and Energy predictions with proper preprocessing.
     """
     
-    def __init__(self, models_path: str = "ml_models"):
+    def __init__(self, models_path: str = "newmodels"):
         """
         Initialize ML service.
         
@@ -35,106 +49,379 @@ class MLService:
             models_path: Path to directory containing trained models
         """
         self.models_path = Path(models_path)
-        self.predictor_model = None
-        self.anomaly_model = None
-        self.feature_columns: List[str] = []
+        
+        # Models
+        self.co2_model = None
+        self.energy_model = None
+        
+        # Preprocessors
+        self.scaler = None
+        self.power_transformer = None
+        
+        # State
         self.is_loaded = False
         
+        # Model metadata
+        self.co2_model_info = {
+            "type": "LightGBM",
+            "target": "co2_kg",
+            "features": 33,
+            "R2": 0.893,
+            "RMSE": 0.327,
+            "MAE": 0.153
+        }
+        
+        self.energy_model_info = {
+            "type": "Ridge",
+            "target": "energia_total_kwh",
+            "features": 35,
+            "R2": 0.998,
+            "RMSE": 0.049,
+            "MAE": 0.014
+        }
+        
     def load_models(self) -> None:
-        """Load trained models from disk."""
+        """Load trained models and preprocessors from disk."""
         try:
-            # Load predictor
-            predictor_path = self.models_path / "energy_predictor.joblib"
-            if predictor_path.exists():
-                logger.info(f"Loading predictor from {predictor_path}")
-                predictor_data = joblib.load(predictor_path)
-                self.predictor_model = predictor_data['model']
-                self.feature_columns = predictor_data.get('feature_columns', get_feature_columns())
-                logger.info(f"Predictor loaded successfully with {len(self.feature_columns)} features")
+            # Load CO2 model
+            co2_path = self.models_path / "modelo_co2.pkl"
+            if co2_path.exists():
+                logger.info(f"Loading CO2 model from {co2_path}")
+                self.co2_model = joblib.load(co2_path)
+                logger.info("CO2 model (LightGBM) loaded successfully")
             else:
-                logger.warning(f"Predictor not found at {predictor_path}")
+                logger.error(f"CO2 model not found at {co2_path}")
+                raise FileNotFoundError(f"CO2 model not found at {co2_path}")
             
-            # Load anomaly detector
-            anomaly_path = self.models_path / "anomaly_detector.joblib"
-            if anomaly_path.exists():
-                logger.info(f"Loading anomaly detector from {anomaly_path}")
-                anomaly_data = joblib.load(anomaly_path)
-                self.anomaly_model = anomaly_data
-                logger.info("Anomaly detector loaded successfully")
+            # Load Energy model
+            energy_path = self.models_path / "modelo_energia_B2.pkl"
+            if energy_path.exists():
+                logger.info(f"Loading Energy model from {energy_path}")
+                self.energy_model = joblib.load(energy_path)
+                logger.info("Energy model (Ridge) loaded successfully")
             else:
-                logger.warning(f"Anomaly detector not found at {anomaly_path}")
+                logger.error(f"Energy model not found at {energy_path}")
+                raise FileNotFoundError(f"Energy model not found at {energy_path}")
+            
+            # Load Scaler
+            scaler_path = self.models_path / "scaler.pkl"
+            if scaler_path.exists():
+                logger.info(f"Loading Scaler from {scaler_path}")
+                self.scaler = joblib.load(scaler_path)
+                logger.info("Scaler loaded successfully")
+            else:
+                logger.error(f"Scaler not found at {scaler_path}")
+                raise FileNotFoundError(f"Scaler not found at {scaler_path}")
+            
+            # Load PowerTransformer
+            pt_path = self.models_path / "power_transformer.pkl"
+            if pt_path.exists():
+                logger.info(f"Loading PowerTransformer from {pt_path}")
+                self.power_transformer = joblib.load(pt_path)
+                logger.info("PowerTransformer loaded successfully")
+            else:
+                logger.error(f"PowerTransformer not found at {pt_path}")
+                raise FileNotFoundError(f"PowerTransformer not found at {pt_path}")
             
             self.is_loaded = True
+            logger.info("All models and preprocessors loaded successfully")
             
         except Exception as e:
             logger.error(f"Error loading models: {str(e)}")
+            self.is_loaded = False
             raise RuntimeError(f"Failed to load ML models: {str(e)}")
     
-    def predict_consumption(
+    def _preprocess_features(
+        self, 
+        features_df: pd.DataFrame,
+        feature_order: List[str]
+    ) -> np.ndarray:
+        """
+        Apply preprocessing pipeline to features.
+        
+        Pipeline:
+        1. Ensure correct column order
+        2. Apply PowerTransformer to specified columns
+        3. Apply Scaler to specified columns
+        
+        Args:
+            features_df: DataFrame with features
+            feature_order: List of feature names in required order
+            
+        Returns:
+            Preprocessed numpy array ready for prediction
+        """
+        # Ensure we have the right columns in right order
+        df = features_df[feature_order].copy()
+        
+        # Identify which columns to transform (intersection with available)
+        cols_to_transform = [c for c in COLS_TO_TRANSFORM if c in df.columns]
+        cols_to_scale = [c for c in COLS_TO_SCALE if c in df.columns]
+        
+        # Apply PowerTransformer to specified columns
+        if self.power_transformer is not None and cols_to_transform:
+            try:
+                # Get indices of columns to transform
+                transform_indices = [feature_order.index(c) for c in cols_to_transform if c in feature_order]
+                if transform_indices:
+                    values_to_transform = df[cols_to_transform].values
+                    # Only transform if we have the right number of features
+                    if values_to_transform.shape[1] == self.power_transformer.n_features_in_:
+                        transformed = self.power_transformer.transform(values_to_transform)
+                        for i, col in enumerate(cols_to_transform):
+                            df[col] = transformed[:, i]
+            except Exception as e:
+                logger.warning(f"PowerTransformer warning: {e}. Continuing without transform.")
+        
+        # Apply Scaler to specified columns
+        if self.scaler is not None and cols_to_scale:
+            try:
+                # Get indices of columns to scale
+                values_to_scale = df[cols_to_scale].values
+                # Only scale if we have the right number of features
+                if values_to_scale.shape[1] == self.scaler.n_features_in_:
+                    scaled = self.scaler.transform(values_to_scale)
+                    for i, col in enumerate(cols_to_scale):
+                        df[col] = scaled[:, i]
+            except Exception as e:
+                logger.warning(f"Scaler warning: {e}. Continuing without scaling.")
+        
+        return df.values
+    
+    def predict_co2(
         self,
-        timestamp: datetime,
+        energia_comedor_kwh: float,
+        energia_salones_kwh: float,
+        energia_laboratorios_kwh: float,
+        energia_auditorios_kwh: float,
+        energia_oficinas_kwh: float,
+        agua_litros: float,
+        temperatura_exterior_c: float,
+        ocupacion_pct: float,
         sede: str,
-        temperatura_exterior_c: float = 20.0,
-        ocupacion_pct: float = 70.0,
+        timestamp: datetime,
         es_festivo: bool = False,
         es_semana_parciales: bool = False,
         es_semana_finales: bool = False,
-        lag_features: Optional[Dict[str, float]] = None,
-        rolling_features: Optional[Dict[str, float]] = None
+        periodo_academico: Optional[str] = None
     ) -> float:
         """
-        Predict energy consumption for given parameters.
+        Predict CO2 emissions using the LightGBM model.
         
         Args:
-            timestamp: Timestamp for prediction
-            sede: Sede name
-            temperatura_exterior_c: Exterior temperature (default: 20.0)
-            ocupacion_pct: Occupancy percentage (default: 70.0)
-            es_festivo: Is holiday (default: False)
-            es_semana_parciales: Is midterm week (default: False)
-            es_semana_finales: Is finals week (default: False)
-            lag_features: Optional dictionary with lag feature values
-            rolling_features: Optional dictionary with rolling feature values
+            All required features for the model
             
         Returns:
-            Predicted consumption in kWh
+            Predicted CO2 in kg
         """
-        if not self.is_loaded or self.predictor_model is None:
-            raise RuntimeError("Predictor model not loaded. Call load_models() first.")
+        if not self.is_loaded or self.co2_model is None:
+            raise RuntimeError("CO2 model not loaded. Call load_models() first.")
         
         # Prepare features
-        features_df = prepare_prediction_features(
-            timestamp=timestamp,
-            sede=sede,
+        features = prepare_features_for_co2_model(
+            energia_comedor_kwh=energia_comedor_kwh,
+            energia_salones_kwh=energia_salones_kwh,
+            energia_laboratorios_kwh=energia_laboratorios_kwh,
+            energia_auditorios_kwh=energia_auditorios_kwh,
+            energia_oficinas_kwh=energia_oficinas_kwh,
+            agua_litros=agua_litros,
             temperatura_exterior_c=temperatura_exterior_c,
             ocupacion_pct=ocupacion_pct,
+            sede=sede,
+            timestamp=timestamp,
             es_festivo=es_festivo,
             es_semana_parciales=es_semana_parciales,
             es_semana_finales=es_semana_finales,
-            lag_features=lag_features,
-            rolling_features=rolling_features
+            periodo_academico=periodo_academico
         )
         
-        # Ensure all required features are present
-        missing_cols = set(self.feature_columns) - set(features_df.columns)
-        for col in missing_cols:
-            features_df[col] = 0
+        # Validate no null values
+        if not validate_features_not_null(features):
+            missing = get_missing_features(features)
+            raise ValueError(f"Null values detected in features: {missing}")
         
-        # Select only the features used by the model
-        X = features_df[self.feature_columns].fillna(0).values
+        # Convert to DataFrame for preprocessing
+        features_df = pd.DataFrame([features])
+        
+        # Ensure column order matches expected
+        features_df = features_df[CO2_FEATURE_ORDER]
+        
+        # Get values as array (preprocessing is handled by model internally for LightGBM)
+        X = features_df.values
         
         # Make prediction
-        prediction = self.predictor_model.predict(X)[0]
+        prediction = self.co2_model.predict(X)[0]
         
         # Ensure non-negative
-        prediction = max(0, prediction)
+        prediction = max(0, float(prediction))
         
-        return float(prediction)
+        logger.debug(f"CO2 prediction: {prediction} kg")
+        return prediction
+    
+    def predict_energy(
+        self,
+        reading_id: int,
+        energia_comedor_kwh: float,
+        energia_salones_kwh: float,
+        energia_laboratorios_kwh: float,
+        energia_auditorios_kwh: float,
+        energia_oficinas_kwh: float,
+        agua_litros: float,
+        temperatura_exterior_c: float,
+        ocupacion_pct: float,
+        co2_kg: float,
+        sede: str,
+        timestamp: datetime,
+        es_festivo: bool = False,
+        es_semana_parciales: bool = False,
+        es_semana_finales: bool = False,
+        periodo_academico: Optional[str] = None
+    ) -> float:
+        """
+        Predict energy consumption using the Ridge model.
+        
+        Args:
+            All required features for the model (including co2_kg)
+            
+        Returns:
+            Predicted energy consumption in kWh
+        """
+        if not self.is_loaded or self.energy_model is None:
+            raise RuntimeError("Energy model not loaded. Call load_models() first.")
+        
+        # Prepare features
+        features = prepare_features_for_energy_model(
+            reading_id=reading_id,
+            energia_comedor_kwh=energia_comedor_kwh,
+            energia_salones_kwh=energia_salones_kwh,
+            energia_laboratorios_kwh=energia_laboratorios_kwh,
+            energia_auditorios_kwh=energia_auditorios_kwh,
+            energia_oficinas_kwh=energia_oficinas_kwh,
+            agua_litros=agua_litros,
+            temperatura_exterior_c=temperatura_exterior_c,
+            ocupacion_pct=ocupacion_pct,
+            co2_kg=co2_kg,
+            sede=sede,
+            timestamp=timestamp,
+            es_festivo=es_festivo,
+            es_semana_parciales=es_semana_parciales,
+            es_semana_finales=es_semana_finales,
+            periodo_academico=periodo_academico
+        )
+        
+        # Validate no null values
+        if not validate_features_not_null(features):
+            missing = get_missing_features(features)
+            raise ValueError(f"Null values detected in features: {missing}")
+        
+        # Convert to DataFrame for preprocessing
+        features_df = pd.DataFrame([features])
+        
+        # Ensure column order matches expected
+        features_df = features_df[ENERGY_B2_FEATURE_ORDER]
+        
+        # Get values as array
+        X = features_df.values
+        
+        # Make prediction
+        prediction = self.energy_model.predict(X)[0]
+        
+        # Ensure non-negative
+        prediction = max(0, float(prediction))
+        
+        logger.debug(f"Energy prediction: {prediction} kWh")
+        return prediction
+    
+    def predict_combined(
+        self,
+        energia_comedor_kwh: float,
+        energia_salones_kwh: float,
+        energia_laboratorios_kwh: float,
+        energia_auditorios_kwh: float,
+        energia_oficinas_kwh: float,
+        agua_litros: float,
+        temperatura_exterior_c: float,
+        ocupacion_pct: float,
+        sede: str,
+        timestamp: datetime,
+        reading_id: Optional[int] = None,
+        es_festivo: bool = False,
+        es_semana_parciales: bool = False,
+        es_semana_finales: bool = False,
+        periodo_academico: Optional[str] = None
+    ) -> Dict[str, float]:
+        """
+        Combined prediction: First predicts CO2, then uses it to predict Energy.
+        
+        This is the main method for predictions as the Energy model requires
+        CO2 as an input feature.
+        
+        Args:
+            All required features (reading_id is auto-generated if not provided)
+            
+        Returns:
+            Dictionary with:
+                - predicted_co2_kg: CO2 prediction
+                - predicted_energy_kwh: Energy prediction
+                - confidence_co2: Model R² for CO2
+                - confidence_energy: Model R² for Energy
+        """
+        if not self.is_loaded:
+            raise RuntimeError("Models not loaded. Call load_models() first.")
+        
+        # Generate reading_id if not provided
+        if reading_id is None:
+            reading_id = int(timestamp.timestamp())
+        
+        # Step 1: Predict CO2
+        predicted_co2 = self.predict_co2(
+            energia_comedor_kwh=energia_comedor_kwh,
+            energia_salones_kwh=energia_salones_kwh,
+            energia_laboratorios_kwh=energia_laboratorios_kwh,
+            energia_auditorios_kwh=energia_auditorios_kwh,
+            energia_oficinas_kwh=energia_oficinas_kwh,
+            agua_litros=agua_litros,
+            temperatura_exterior_c=temperatura_exterior_c,
+            ocupacion_pct=ocupacion_pct,
+            sede=sede,
+            timestamp=timestamp,
+            es_festivo=es_festivo,
+            es_semana_parciales=es_semana_parciales,
+            es_semana_finales=es_semana_finales,
+            periodo_academico=periodo_academico
+        )
+        
+        # Step 2: Predict Energy using the CO2 prediction
+        predicted_energy = self.predict_energy(
+            reading_id=reading_id,
+            energia_comedor_kwh=energia_comedor_kwh,
+            energia_salones_kwh=energia_salones_kwh,
+            energia_laboratorios_kwh=energia_laboratorios_kwh,
+            energia_auditorios_kwh=energia_auditorios_kwh,
+            energia_oficinas_kwh=energia_oficinas_kwh,
+            agua_litros=agua_litros,
+            temperatura_exterior_c=temperatura_exterior_c,
+            ocupacion_pct=ocupacion_pct,
+            co2_kg=predicted_co2,
+            sede=sede,
+            timestamp=timestamp,
+            es_festivo=es_festivo,
+            es_semana_parciales=es_semana_parciales,
+            es_semana_finales=es_semana_finales,
+            periodo_academico=periodo_academico
+        )
+        
+        return {
+            "predicted_co2_kg": predicted_co2,
+            "predicted_energy_kwh": predicted_energy,
+            "confidence_co2": self.co2_model_info["R2"],
+            "confidence_energy": self.energy_model_info["R2"]
+        }
     
     def predict_batch(
         self,
         predictions_data: List[Dict]
-    ) -> List[float]:
+    ) -> List[Dict[str, float]]:
         """
         Make batch predictions.
         
@@ -142,193 +429,29 @@ class MLService:
             predictions_data: List of dictionaries with prediction parameters
             
         Returns:
-            List of predicted consumption values
+            List of prediction results
         """
-        if not self.is_loaded or self.predictor_model is None:
-            raise RuntimeError("Predictor model not loaded. Call load_models() first.")
+        if not self.is_loaded:
+            raise RuntimeError("Models not loaded. Call load_models() first.")
         
-        predictions = []
+        results = []
         for data in predictions_data:
             try:
-                pred = self.predict_consumption(**data)
-                predictions.append(pred)
+                result = self.predict_combined(**data)
+                results.append(result)
             except Exception as e:
                 logger.error(f"Error predicting for data {data}: {str(e)}")
-                predictions.append(0.0)
-        
-        return predictions
-    
-    def predict_horizon(
-        self,
-        sede: str,
-        start_timestamp: datetime,
-        horizon_hours: int = 24,
-        temperatura_exterior_c: float = 20.0,
-        ocupacion_pct: float = 70.0
-    ) -> List[Dict]:
-        """
-        Predict consumption for multiple hours ahead.
-        
-        Args:
-            sede: Sede name
-            start_timestamp: Starting timestamp
-            horizon_hours: Number of hours to predict (default: 24)
-            temperatura_exterior_c: Exterior temperature
-            ocupacion_pct: Occupancy percentage
-            
-        Returns:
-            List of dictionaries with timestamp and predicted consumption
-        """
-        if not self.is_loaded or self.predictor_model is None:
-            raise RuntimeError("Predictor model not loaded. Call load_models() first.")
-        
-        predictions = []
-        previous_values = []
-        
-        for h in range(horizon_hours):
-            current_timestamp = start_timestamp + timedelta(hours=h)
-            
-            # Calculate lag features from previous predictions
-            lag_features = {}
-            if len(previous_values) >= 1:
-                lag_features['energia_total_kwh_lag_1h'] = previous_values[-1]
-            if len(previous_values) >= 24:
-                lag_features['energia_total_kwh_lag_24h'] = previous_values[-24]
-            if len(previous_values) >= 168:
-                lag_features['energia_total_kwh_lag_168h'] = previous_values[-168]
-            
-            # Calculate rolling features
-            rolling_features = {}
-            if len(previous_values) >= 24:
-                rolling_features['energia_total_kwh_rolling_mean_24h'] = np.mean(previous_values[-24:])
-                rolling_features['energia_total_kwh_rolling_std_24h'] = np.std(previous_values[-24:])
-                rolling_features['energia_total_kwh_rolling_max_24h'] = np.max(previous_values[-24:])
-            if len(previous_values) >= 168:
-                rolling_features['energia_total_kwh_rolling_mean_168h'] = np.mean(previous_values[-168:])
-                rolling_features['energia_total_kwh_rolling_std_168h'] = np.std(previous_values[-168:])
-                rolling_features['energia_total_kwh_rolling_max_168h'] = np.max(previous_values[-168:])
-            
-            # Make prediction
-            pred = self.predict_consumption(
-                timestamp=current_timestamp,
-                sede=sede,
-                temperatura_exterior_c=temperatura_exterior_c,
-                ocupacion_pct=ocupacion_pct,
-                lag_features=lag_features if lag_features else None,
-                rolling_features=rolling_features if rolling_features else None
-            )
-            
-            predictions.append({
-                'timestamp': current_timestamp,
-                'predicted_kwh': pred,
-                'horizon_hours': h + 1
-            })
-            
-            previous_values.append(pred)
-        
-        return predictions
-    
-    def detect_anomalies(
-        self,
-        consumption_data: pd.DataFrame,
-        severity_threshold: Optional[str] = None
-    ) -> List[Dict]:
-        """
-        Detect anomalies in consumption data.
-        
-        Args:
-            consumption_data: DataFrame with consumption records
-            severity_threshold: Optional severity filter ('low', 'medium', 'high', 'critical')
-            
-        Returns:
-            List of detected anomalies
-        """
-        if not self.is_loaded or self.anomaly_model is None:
-            raise RuntimeError("Anomaly model not loaded. Call load_models() first.")
-        
-        # This is a simplified version. Full implementation would use the loaded detector
-        anomalies = []
-        
-        try:
-            # Use Isolation Forest from loaded model
-            isolation_forest = self.anomaly_model.get('isolation_forest')
-            baselines = self.anomaly_model.get('baselines', {})
-            z_threshold = self.anomaly_model.get('z_threshold', 3.0)
-            
-            if isolation_forest is None:
-                logger.warning("Isolation Forest not found in anomaly model")
-                return anomalies
-            
-            # Prepare features for anomaly detection
-            features = ['energia_total_kwh', 'hora', 'dia_semana']
-            available_features = [f for f in features if f in consumption_data.columns]
-            
-            if not available_features:
-                logger.warning("No valid features for anomaly detection")
-                return anomalies
-            
-            # Predict anomalies (-1 for anomaly, 1 for normal)
-            X = consumption_data[available_features].fillna(0).values
-            predictions = isolation_forest.predict(X)
-            
-            # Filter anomalies
-            anomaly_indices = np.where(predictions == -1)[0]
-            
-            for idx in anomaly_indices:
-                row = consumption_data.iloc[idx]
-                
-                # Calculate deviation from baseline if available
-                sede = row.get('sede', 'unknown')
-                hora = int(row.get('hora', 0))
-                es_fin_semana = row.get('es_fin_semana', False)
-                day_type = 'weekend' if es_fin_semana else 'weekday'
-                
-                expected_value = row['energia_total_kwh']
-                deviation_pct = 0.0
-                
-                if sede in baselines:
-                    key = f'{day_type}_hour_{hora}'
-                    if key in baselines[sede]:
-                        baseline = baselines[sede][key]
-                        expected_value = baseline.get('mean', row['energia_total_kwh'])
-                        if expected_value > 0:
-                            deviation_pct = ((row['energia_total_kwh'] - expected_value) / expected_value) * 100
-                
-                # Determine severity
-                severity = 'low'
-                if abs(deviation_pct) > 100:
-                    severity = 'critical'
-                elif abs(deviation_pct) > 50:
-                    severity = 'high'
-                elif abs(deviation_pct) > 30:
-                    severity = 'medium'
-                
-                # Apply severity filter
-                if severity_threshold and severity != severity_threshold:
-                    if severity_threshold == 'high' and severity not in ['high', 'critical']:
-                        continue
-                    elif severity_threshold == 'critical' and severity != 'critical':
-                        continue
-                
-                anomalies.append({
-                    'timestamp': row.get('timestamp', datetime.now()),
-                    'sede': sede,
-                    'sector': 'total',
-                    'anomaly_type': 'statistical_outlier',
-                    'severity': severity,
-                    'actual_value': float(row['energia_total_kwh']),
-                    'expected_value': float(expected_value),
-                    'deviation_pct': float(deviation_pct),
-                    'description': f"Consumo {'elevado' if deviation_pct > 0 else 'bajo'} detectado",
-                    'recommendation': "Verificar equipos y condiciones de operacion"
+                results.append({
+                    "predicted_co2_kg": 0.0,
+                    "predicted_energy_kwh": 0.0,
+                    "confidence_co2": 0.0,
+                    "confidence_energy": 0.0,
+                    "error": str(e)
                 })
         
-        except Exception as e:
-            logger.error(f"Error detecting anomalies: {str(e)}")
-        
-        return anomalies
+        return results
     
-    def get_model_info(self) -> Dict:
+    def get_model_info(self) -> Dict[str, Any]:
         """
         Get information about loaded models.
         
@@ -336,11 +459,20 @@ class MLService:
             Dictionary with model information
         """
         return {
-            'predictor_loaded': self.predictor_model is not None,
-            'anomaly_detector_loaded': self.anomaly_model is not None,
-            'feature_count': len(self.feature_columns),
-            'feature_columns': self.feature_columns,
-            'models_path': str(self.models_path)
+            "models_loaded": self.is_loaded,
+            "models_path": str(self.models_path),
+            "co2_model": {
+                "loaded": self.co2_model is not None,
+                **self.co2_model_info
+            },
+            "energy_model": {
+                "loaded": self.energy_model is not None,
+                **self.energy_model_info
+            },
+            "preprocessors": {
+                "scaler_loaded": self.scaler is not None,
+                "power_transformer_loaded": self.power_transformer is not None
+            }
         }
 
 

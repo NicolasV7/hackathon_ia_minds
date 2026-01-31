@@ -32,13 +32,26 @@ async def lifespan(app: FastAPI):
         await init_db()
         logger.info("Database initialized")
     
-    # Load ML models
+    # Load ML models (CO2 and Energy models from newmodels/)
     try:
+        from pathlib import Path
         from app.ml.inference import ml_service
+        from app.core.config import get_settings
+        
+        ml_settings = get_settings()
+        ml_service.models_path = Path(ml_settings.ML_MODELS_PATH)
+        
+        logger.info(f"Loading ML models from: {ml_service.models_path}")
         ml_service.load_models()
+        
+        # Log model info
+        model_info = ml_service.get_model_info()
+        logger.info(f"CO2 Model: {model_info['co2_model']}")
+        logger.info(f"Energy Model: {model_info['energy_model']}")
         logger.info("ML models loaded successfully")
     except Exception as e:
         logger.error(f"Failed to load ML models: {e}")
+        logger.warning("Application will continue but predictions will not work")
         # Continue anyway for development
     
     yield
