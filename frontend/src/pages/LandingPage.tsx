@@ -45,7 +45,7 @@ const capabilities = [
   {
     icon: BarChart3,
     title: 'Prediccion de Consumo',
-    description: 'Modelos de machine learning entrenados con 7 anos de datos historicos. Precision del 99.8% en prediccion de energia.',
+    description: 'Modelos de machine learning entrenados con datos historicos. Precision del 99.8% en prediccion de energia.',
     metric: '99.8%',
     metricLabel: 'precision',
   },

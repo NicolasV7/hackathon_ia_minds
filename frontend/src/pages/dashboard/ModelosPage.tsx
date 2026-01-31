@@ -14,19 +14,28 @@ import { LoadingScreen } from '@/components/ui/loading-screen';
 
 export default function ModelosPage() {
   const [models, setModels] = useState<ModelMetrics[]>([]);
-  const [selectedModel, setSelectedModel] = useState<string>('XGBoost');
+  const [selectedModel, setSelectedModel] = useState<string>('');
   const [predictions, setPredictions] = useState<{ real: number[]; predicho: number[] }>({ real: [], predicho: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [modelsData, predsData] = await Promise.all([
-          getModelMetrics(),
-          getModelPredictions(selectedModel),
-        ]);
+        const modelsData = await getModelMetrics();
         setModels(modelsData);
-        setPredictions(predsData);
+        
+        // Set initial selected model to the active one or first model
+        const activeModelName = modelsData.find(m => m.activo)?.nombre || modelsData[0]?.nombre || '';
+        if (!selectedModel && activeModelName) {
+          setSelectedModel(activeModelName);
+        }
+        
+        // Get predictions for selected model
+        const modelToUse = selectedModel || activeModelName;
+        if (modelToUse) {
+          const predsData = await getModelPredictions(modelToUse);
+          setPredictions(predsData);
+        }
       } catch (error) {
         console.error('Error fetching models data:', error);
       } finally {
