@@ -11,6 +11,8 @@ import {
   getOptimizationOpportunities,
   getPendingRecommendations,
   getSedesInfo,
+  generateAIRecommendations,
+  getDashboardKPIs,
   type Recommendation,
   type SedeInfo,
 } from '@/services/api';
@@ -29,6 +31,7 @@ export default function BalancesPage() {
   const [sedes, setSedes] = useState<SedeInfo[]>([]);
   const [selectedSede, setSelectedSede] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -106,6 +109,29 @@ export default function BalancesPage() {
       case 'alta': return 'badge-critical';
       case 'media': return 'badge-pending';
       default: return 'badge-resolved';
+    }
+  };
+
+  // Generate AI recommendations based on current data
+  const handleGenerateAIRecommendations = async () => {
+    try {
+      setAiLoading(true);
+      const sedeData = sedes.find(s => s.id === selectedSede) || sedes[0];
+      if (!sedeData) return;
+
+      const aiResponse = await generateAIRecommendations(
+        selectedSede === 'all' ? 'Todas' : sedeData.nombre,
+        sedeData.consumo_energia,
+        sedeData.consumo_agua,
+        sedeData.emisiones_co2,
+        5 // Default anomalies count
+      );
+      
+      setRecommendations(aiResponse.recomendaciones);
+    } catch (error) {
+      console.error('Error generating AI recommendations:', error);
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -329,14 +355,33 @@ export default function BalancesPage() {
       {/* LLM Recommendations */}
       <Card className="chart-container">
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Lightbulb className="w-5 h-5 text-primary" />
-            Recomendaciones Personalizadas (IA)
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">Acciones generadas por el motor de recomendaciones LLM</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Lightbulb className="w-5 h-5 text-primary" />
+                Recomendaciones Personalizadas (IA)
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">Acciones generadas por el motor de recomendaciones LLM basadas en datos reales</p>
+            </div>
+            <Button 
+              onClick={handleGenerateAIRecommendations} 
+              disabled={aiLoading}
+              className="flex items-center gap-2"
+            >
+              <Lightbulb className="w-4 h-4" />
+              {aiLoading ? 'Generando...' : 'Generar con IA'}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
+            {recommendations.length === 0 && !aiLoading && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Lightbulb className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>Haz clic en "Generar con IA" para obtener recomendaciones personalizadas</p>
+                <p className="text-sm mt-2">OpenAI analizará los datos de consumo de {selectedSede === 'all' ? 'todas las sedes' : 'la sede seleccionada'}</p>
+              </div>
+            )}
             {recommendations.map((rec, index) => (
               <motion.div
                 key={rec.id}

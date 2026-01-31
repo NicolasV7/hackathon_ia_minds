@@ -322,6 +322,39 @@ export async function sendChatMessage(message: string): Promise<{ response: stri
   }, () => ({ response: 'Lo siento, no puedo procesar tu solicitud en este momento. Por favor, intenta de nuevo.' }));
 }
 
+// POST /api/v1/recommendations/ai-generate - Generate AI recommendations
+export async function generateAIRecommendations(
+  sede: string,
+  energia: number,
+  agua: number,
+  co2: number,
+  anomalias: number
+): Promise<{ recomendaciones: Recommendation[] }> {
+  const params = new URLSearchParams({
+    sede,
+    energia: energia.toString(),
+    agua: agua.toString(),
+    co2: co2.toString(),
+    anomalias: anomalias.toString(),
+  });
+  return apiRequest(`/api/v1/recommendations/ai-generate?${params}`, {
+    method: 'POST',
+  }, () => ({
+    recomendaciones: [
+      {
+        id: 'AI-1',
+        sede,
+        sector: 'General',
+        tipo: 'ia',
+        descripcion: 'Mantener monitoreo continuo del consumo energético. Los indicadores actuales son estables.',
+        ahorro_estimado: 100,
+        prioridad: 'media',
+        estado: 'pendiente',
+      },
+    ],
+  }));
+}
+
 // GET /api/v1/sedes - Get all sedes info
 export async function getSedesInfo(): Promise<SedeInfo[]> {
   return apiRequest('/api/v1/sedes', {}, () => getMockSedes());
