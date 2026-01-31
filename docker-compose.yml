@@ -51,6 +51,8 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: "http://77.42.26.173:8000"
+      # Force rebuild when API_URL changes
+      no_cache: true
     container_name: uptc_frontend
     ports:
       - "3001:80"
