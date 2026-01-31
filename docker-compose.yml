@@ -44,18 +44,16 @@ services:
         delay: 5s
         max_attempts: 3
 
-  # Vite + React Frontend (nginx)
+  # Vite + React Frontend (Dev Server)
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
       args:
         VITE_API_URL: "http://77.42.26.173:8000"
-      # Force rebuild when API_URL changes
-      no_cache: true
     container_name: uptc_frontend
     ports:
-      - "3001:80"
+      - "8080:8080"
     networks:
       - uptc_network
     restart: unless-stopped
@@ -63,7 +61,7 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -72,10 +70,10 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 256M
+          memory: 512M
         reservations:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
 
   # Telegram Bot
   telegram-bot:
