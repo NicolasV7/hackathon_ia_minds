@@ -34,10 +34,11 @@ export default function AlertasPage() {
   useEffect(() => {
     async function fetchData() {
       try {
+        const sedeParam = selectedSede === 'all' ? undefined : selectedSede;
         const [alertsData, sedesData, evolutionData, shapData, confData] = await Promise.all([
-          getUnresolvedAnomalies(),
+          getUnresolvedAnomalies(sedeParam),
           getSedesInfo(),
-          getAlertEvolution(),
+          getAlertEvolution(sedeParam),
           getShapValues('energia'),
           getModelConfidence(),
         ]);
@@ -83,7 +84,7 @@ export default function AlertasPage() {
       }
     }
     fetchData();
-  }, []);
+  }, [selectedSede]);
 
   const filteredAlerts = alerts.filter(a => {
     if (selectedSede !== 'all' && a.sede.toLowerCase() !== selectedSede) return false;

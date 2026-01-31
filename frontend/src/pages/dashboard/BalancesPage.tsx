@@ -33,12 +33,13 @@ export default function BalancesPage() {
   useEffect(() => {
     async function fetchData() {
       try {
+        const sedeParam = selectedSede === 'all' ? undefined : selectedSede;
         const [savingsData, sustData, paretoData, oppData, recData, sedesData] = await Promise.all([
-          getSavingsProjection(),
-          getSustainabilityContribution(),
-          getParetoAnalysis(),
-          getOptimizationOpportunities(),
-          getPendingRecommendations(),
+          getSavingsProjection(sedeParam),
+          getSustainabilityContribution(sedeParam),
+          getParetoAnalysis(sedeParam),
+          getOptimizationOpportunities(sedeParam),
+          getPendingRecommendations(sedeParam),
           getSedesInfo(),
         ]);
         setSavings(savingsData);

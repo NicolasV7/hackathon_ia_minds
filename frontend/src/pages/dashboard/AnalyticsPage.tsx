@@ -49,9 +49,9 @@ export default function AnalyticsPage() {
           getHourlyPatterns(selectedSede),
           getCorrelationMatrix(selectedSede),
           getAcademicPeriodConsumption(),
-          getParetoAnalysis(),
-          getSustainabilityContribution(),
-          getOptimizationOpportunities(),
+          getParetoAnalysis(selectedSede),
+          getSustainabilityContribution(selectedSede),
+          getOptimizationOpportunities(selectedSede),
         ]);
         setSedes(sedesData);
         setSectorData(sectorRes);

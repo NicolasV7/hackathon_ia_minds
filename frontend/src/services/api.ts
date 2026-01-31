@@ -192,8 +192,9 @@ export async function getAnomalySummary(sede: string): Promise<{ total: number; 
   }));
 }
 
-export async function getUnresolvedAnomalies(): Promise<Anomaly[]> {
-  return apiRequest('/api/v1/anomalies/unresolved', {}, () => getMockAnomalies());
+export async function getUnresolvedAnomalies(sede?: string): Promise<Anomaly[]> {
+  const endpoint = sede ? `/api/v1/anomalies/sede/${sede}` : '/api/v1/anomalies/unresolved';
+  return apiRequest(endpoint, {}, () => getMockAnomalies());
 }
 
 export async function getAnomaliesByDateRange(startDate: string, endDate: string): Promise<Anomaly[]> {
@@ -219,8 +220,9 @@ export async function getRecommendationsBySede(sede: string): Promise<Recommenda
   return apiRequest(`/api/v1/recommendations/sede/${sede}`, {}, () => []);
 }
 
-export async function getPendingRecommendations(): Promise<Recommendation[]> {
-  return apiRequest('/api/v1/recommendations/pending', {}, () => []);
+export async function getPendingRecommendations(sede?: string): Promise<Recommendation[]> {
+  const endpoint = sede ? `/api/v1/recommendations/sede/${sede}` : '/api/v1/recommendations/pending';
+  return apiRequest(endpoint, {}, () => []);
 }
 
 export async function updateRecommendationStatus(recommendationId: string, estado: string): Promise<Recommendation> {
@@ -273,28 +275,33 @@ export async function getAcademicPeriodConsumption(): Promise<{ periodo: string;
 }
 
 // GET /api/v1/optimization/opportunities - Get optimization opportunities
-export async function getOptimizationOpportunities(): Promise<{ area: string; potencial_ahorro: number; descripcion: string }[]> {
-  return apiRequest('/api/v1/optimization/opportunities', {}, () => getMockOpportunities());
+export async function getOptimizationOpportunities(sede?: string): Promise<{ area: string; potencial_ahorro: number; descripcion: string }[]> {
+  const endpoint = sede ? `/api/v1/optimization/opportunities?sede=${sede}` : '/api/v1/optimization/opportunities';
+  return apiRequest(endpoint, {}, () => getMockOpportunities());
 }
 
 // GET /api/v1/optimization/savings-projection - Get savings projection (waterfall)
-export async function getSavingsProjection(): Promise<{ categoria: string; valor: number; tipo: 'ahorro' | 'total' }[]> {
-  return apiRequest('/api/v1/optimization/savings-projection', {}, () => getMockSavingsProjection());
+export async function getSavingsProjection(sede?: string): Promise<{ categoria: string; valor: number; tipo: 'ahorro' | 'total' }[]> {
+  const endpoint = sede ? `/api/v1/optimization/savings-projection?sede=${sede}` : '/api/v1/optimization/savings-projection';
+  return apiRequest(endpoint, {}, () => getMockSavingsProjection());
 }
 
 // GET /api/v1/optimization/sustainability - Get sustainability contribution
-export async function getSustainabilityContribution(): Promise<{ arboles_salvados: number; agua_ahorrada: number; co2_reducido: number }> {
-  return apiRequest('/api/v1/optimization/sustainability', {}, () => getMockSustainability());
+export async function getSustainabilityContribution(sede?: string): Promise<{ arboles_salvados: number; agua_ahorrada: number; co2_reducido: number }> {
+  const endpoint = sede ? `/api/v1/optimization/sustainability?sede=${sede}` : '/api/v1/optimization/sustainability';
+  return apiRequest(endpoint, {}, () => getMockSustainability());
 }
 
 // GET /api/v1/optimization/pareto - Get pareto analysis
-export async function getParetoAnalysis(): Promise<{ causa: string; porcentaje: number; acumulado: number }[]> {
-  return apiRequest('/api/v1/optimization/pareto', {}, () => getMockPareto());
+export async function getParetoAnalysis(sede?: string): Promise<{ causa: string; porcentaje: number; acumulado: number }[]> {
+  const endpoint = sede ? `/api/v1/optimization/pareto?sede=${sede}` : '/api/v1/optimization/pareto';
+  return apiRequest(endpoint, {}, () => getMockPareto());
 }
 
 // GET /api/v1/alerts/evolution - Get alert evolution over time
-export async function getAlertEvolution(): Promise<{ mes: string; anomalias: number; desbalances: number; criticas: number }[]> {
-  return apiRequest('/api/v1/alerts/evolution', {}, () => getMockAlertEvolution());
+export async function getAlertEvolution(sede?: string): Promise<{ mes: string; anomalias: number; desbalances: number; criticas: number }[]> {
+  const endpoint = sede ? `/api/v1/alerts/evolution?sede=${sede}` : '/api/v1/alerts/evolution';
+  return apiRequest(endpoint, {}, () => getMockAlertEvolution());
 }
 
 // GET /api/v1/explainability/shap/{variable} - Get SHAP values
