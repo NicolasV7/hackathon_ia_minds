@@ -21,6 +21,53 @@ KNOWLEDGE_BASE: Dict[str, str] = {
         "de la UPTC: medir consumo, detectar anomalías, predecir consumo horario y generar "
         "recomendaciones de ahorro e implementación."
     ),
+    "ahorro": (
+        "Recomendaciones rápidas para ahorrar energía en edificios: \n"
+        "1. Programar HVAC según ocupación y horarios.\n"
+        "2. Sustituir iluminación por LED y usar sensores de presencia.\n"
+        "3. Mantener preventivamente equipos eléctricos.\n"
+        "4. Evitar equipos funcionando 24/7; usar programación y apagado automático.\n"
+        "5. Mostrar indicadores de consumo para sensibilizar usuarios."
+    ),
+    "implementacion": (
+        "Plan de implementación de medidas de eficiencia: \n"
+        "1. Auditoría energética para identificar prioridades.\n"
+        "2. Priorizar acciones por ROI y facilidad de ejecución.\n"
+        "3. Desplegar sensores/telemetría para monitorización continua.\n"
+        "4. Integrar predicciones para planificar cargas y horarios.\n"
+        "5. Medir impacto (kWh ahorrado, reducción picos) y ajustar."
+    ),
+    "datos": (
+        "Datos curiosos sobre energía: \n"
+        "- La iluminación LED puede consumir hasta 80% menos que la incandescente.\n"
+        "- Muchos edificios pierden 20-30% de energía por ineficiencias.\n"
+        "- La gestión de demanda reduce costes evitando picos de consumo.\n"
+        "- Apagar equipos no usados reduce consumo significativamente.\n"
+        "- La eficiencia energética también reduce emisiones de CO2."
+    ),
+    "como_reducir_factura": (
+        "Cómo reducir la factura eléctrica: \n"
+        "- Revisar tarifas y desplazar cargas a tramos más baratos.\n"
+        "- Mejorar la eficiencia de equipos y control horario.\n"
+        "- Implementar controles automáticos para reducir standby.\n"
+        "- Monitorizar consumos por área para detectar fugas."
+    ),
+    "horario_hvac": (
+        "Mejores prácticas de horarios para HVAC: \n"
+        "- Programar encendidos 30–60 min antes de ocupación.\n"
+        "- Bajar setpoints fuera de horario y usar setbacks nocturnos.\n"
+        "- Integrar ocupación y condiciones climáticas para optimizar."
+    ),
+    "tips_estudiantes": (
+        "Consejos para estudiantes: \n"
+        "- Apagar luces y equipos al salir.\n"
+        "- Usar cargadores con temporizador o enchufes inteligentes.\n"
+        "- Reportar equipos dañados que consumen más de lo normal.\n"
+        "- Participar en campañas de ahorro y retos de consumo."
+    ),
+    "mensaje_bonito": (
+        "✨ Gracias por preocuparte por el planeta. Cada pequeño gesto cuenta: apaga una luz hoy y haz la diferencia. ✨"
+    ),
 }
 
 
@@ -83,11 +130,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "Ejemplos: '¿Cuál es el objetivo?', '¿Cómo funcionan las predicciones?'"
     )
     keyboard = [
-        [InlineKeyboardButton("Saludar", callback_data="saludar")],
         [
-            InlineKeyboardButton("Objetivo", callback_data="objetivo"),
-            InlineKeyboardButton("ML", callback_data="ml"),
-            InlineKeyboardButton("API", callback_data="api"),
+            InlineKeyboardButton("Ahorro", callback_data="ahorro"),
+            InlineKeyboardButton("Implementación", callback_data="implementacion"),
+            InlineKeyboardButton("Datos curiosos", callback_data="datos"),
+        ],
+        [
+            InlineKeyboardButton("¿Cómo reducir factura?", callback_data="como_reducir_factura"),
+            InlineKeyboardButton("Horario HVAC", callback_data="horario_hvac"),
+            InlineKeyboardButton("Tips estudiantes", callback_data="tips_estudiantes"),
+        ],
+        [
+            InlineKeyboardButton("Mensaje bonito", callback_data="mensaje_bonito"),
         ],
     ]
     await update.message.reply_text("Selecciona una pregunta rápida:", reply_markup=InlineKeyboardMarkup(keyboard))
@@ -106,11 +160,18 @@ async def saludar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
-        [InlineKeyboardButton("Saludar", callback_data="saludar")],
         [
-            InlineKeyboardButton("Objetivo", callback_data="objetivo"),
-            InlineKeyboardButton("ML", callback_data="ml"),
-            InlineKeyboardButton("API", callback_data="api"),
+            InlineKeyboardButton("Ahorro", callback_data="ahorro"),
+            InlineKeyboardButton("Implementación", callback_data="implementacion"),
+            InlineKeyboardButton("Datos curiosos", callback_data="datos"),
+        ],
+        [
+            InlineKeyboardButton("¿Cómo reducir factura?", callback_data="como_reducir_factura"),
+            InlineKeyboardButton("Horario HVAC", callback_data="horario_hvac"),
+            InlineKeyboardButton("Tips estudiantes", callback_data="tips_estudiantes"),
+        ],
+        [
+            InlineKeyboardButton("Mensaje bonito", callback_data="mensaje_bonito"),
         ],
     ]
     await update.message.reply_text("Selecciona una pregunta:", reply_markup=InlineKeyboardMarkup(keyboard))
@@ -118,11 +179,18 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 def get_menu_markup() -> InlineKeyboardMarkup:
     keyboard = [
-        [InlineKeyboardButton("Saludar", callback_data="saludar")],
         [
-            InlineKeyboardButton("Objetivo", callback_data="objetivo"),
-            InlineKeyboardButton("ML", callback_data="ml"),
-            InlineKeyboardButton("API", callback_data="api"),
+            InlineKeyboardButton("Ahorro", callback_data="ahorro"),
+            InlineKeyboardButton("Implementación", callback_data="implementacion"),
+            InlineKeyboardButton("Datos curiosos", callback_data="datos"),
+        ],
+        [
+            InlineKeyboardButton("¿Cómo reducir factura?", callback_data="como_reducir_factura"),
+            InlineKeyboardButton("Horario HVAC", callback_data="horario_hvac"),
+            InlineKeyboardButton("Tips estudiantes", callback_data="tips_estudiantes"),
+        ],
+        [
+            InlineKeyboardButton("Mensaje bonito", callback_data="mensaje_bonito"),
         ],
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -132,6 +200,13 @@ PROMPT_MAP = {
     "objetivo": "¿Cuál es el objetivo del proyecto UPTC EcoEnergy?",
     "ml": "Explica brevemente la parte de ML del proyecto y dónde están los modelos.",
     "api": "Explica brevemente la arquitectura de la API y los endpoints principales.",
+    "ahorro": "Dame 5 recomendaciones prácticas para ahorrar energía en edificios universitarios, enfocadas en consumo eléctrico y HVAC.",
+    "implementacion": "Describe un plan paso a paso para implementar medidas de eficiencia energética en un campus universitario, con prioridades y métricas de éxito.",
+    "datos": "Comparte 5 datos curiosos y relevantes sobre energía y eficiencia energética para concienciación.",
+    "como_reducir_factura": "¿Qué acciones concretas puede tomar una universidad para reducir su factura eléctrica y desplazar cargas a tramos económicos?",
+    "horario_hvac": "¿Cuáles son las mejores prácticas para programar HVAC según ocupación y clima?",
+    "tips_estudiantes": "5 consejos simples para que estudiantes ahorren energía en residencias y aulas.",
+    "mensaje_bonito": "Devuelve un breve mensaje amable y motivador sobre cuidado energético.",
 }
 
 
@@ -145,6 +220,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if data == "saludar":
         await query.edit_message_text("hoolisss estrellitas")
+        return
+
+    # If we have a local canned answer, use it immediately (works without OpenAI key)
+    if data in KNOWLEDGE_BASE:
+        await query.edit_message_text(KNOWLEDGE_BASE[data])
         return
 
     prompt = PROMPT_MAP.get(data, data)
