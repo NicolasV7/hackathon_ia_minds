@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     API_V1_STR: str = "/api/v1"
     
-    # Database
-    DATABASE_URL: str
+    # Database - SQLite by default
+    DATABASE_URL: str = "sqlite+aiosqlite:///./uptc_energy.db"
     DB_POOL_SIZE: int = 20
     DB_MAX_OVERFLOW: int = 10
     DB_ECHO: bool = False
