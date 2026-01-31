@@ -45,7 +45,7 @@ class ConsumptionRecord(Base):
     dia_nombre = Column(String(20))
     mes = Column(Integer)  # 1-12
     trimestre = Column(Integer)  # 1-4
-    año = Column(Integer)
+    ano = Column(Integer)  # año sin tilde para compatibilidad
     
     # Academic context
     periodo_academico = Column(String(50))
