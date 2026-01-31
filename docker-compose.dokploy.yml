@@ -1,6 +1,6 @@
 # UPTC EcoEnergy - Dokploy Deployment Configuration
 # This file configures automatic deployment on Dokploy
-# All services are pre-configured with default values
+# Copy .env.example to .env and configure your API keys
 
 name: uptc-ecoenergy
 
