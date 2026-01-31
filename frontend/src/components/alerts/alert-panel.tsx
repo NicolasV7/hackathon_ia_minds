@@ -244,7 +244,7 @@ export function AlertPanel({
       </CardHeader>
 
       <CardContent>
-        <ScrollArea className={cn("pr-4", maxHeight &amp;&amp; `h-[${maxHeight}]`)}>
+        <ScrollArea className={cn("pr-4", maxHeight && `h-[${maxHeight}]`)}>
           <div className="space-y-3">
             {filteredAlerts.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">

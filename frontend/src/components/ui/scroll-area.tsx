@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 
 interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string
-  children: React.ReactNode
+  children?: React.ReactNode
 }
 
 const ScrollArea = React.forwardRef<HTMLDivElement, ScrollAreaProps>(
