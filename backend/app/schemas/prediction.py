@@ -2,7 +2,7 @@
 Prediction schemas for CO2 and Energy models.
 Updated to support new ML models from newmodels/ folder.
 """
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 from datetime import datetime
 from typing import Optional, List
 from enum import Enum
@@ -101,12 +101,11 @@ class PredictionResponse(BaseModel):
     
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
     
-    @field_validator('timestamp', mode='before')
-    @classmethod
-    def set_timestamp_from_prediction_timestamp(cls, v, info):
-        if v is None and info.data.get('prediction_timestamp'):
-            return info.data.get('prediction_timestamp')
-        return v
+    @model_validator(mode='after')
+    def set_timestamp_from_prediction_timestamp(self):
+        if self.timestamp is None and self.prediction_timestamp is not None:
+            self.timestamp = self.prediction_timestamp
+        return self
 
 
 class CO2PredictionRequest(BaseModel):
