@@ -21,6 +21,62 @@ CSV_PATH = Path("/app/data/csv/consumos_uptc.csv")
 BATCH_SIZE = 5000
 
 
+async def migrate_predictions_table():
+    """Migra la tabla predictions para agregar nuevas columnas si no existen."""
+    new_columns = [
+        ("predicted_co2_kg", "FLOAT"),
+        ("confidence_co2", "FLOAT DEFAULT 0.893"),
+        ("predicted_energy_kwh", "FLOAT"),
+        ("confidence_energy", "FLOAT DEFAULT 0.998"),
+        ("energia_comedor_kwh", "FLOAT"),
+        ("energia_salones_kwh", "FLOAT"),
+        ("energia_laboratorios_kwh", "FLOAT"),
+        ("energia_auditorios_kwh", "FLOAT"),
+        ("energia_oficinas_kwh", "FLOAT"),
+        ("agua_litros", "FLOAT"),
+        ("temperatura_exterior_c", "FLOAT"),
+        ("ocupacion_pct", "FLOAT"),
+        ("es_festivo", "BOOLEAN DEFAULT 0"),
+        ("es_semana_parciales", "BOOLEAN DEFAULT 0"),
+        ("es_semana_finales", "BOOLEAN DEFAULT 0"),
+        ("model_type_co2", "VARCHAR(50) DEFAULT 'LightGBM'"),
+        ("model_type_energy", "VARCHAR(50) DEFAULT 'Ridge'"),
+        ("actual_co2_kg", "FLOAT"),
+        ("actual_energy_kwh", "FLOAT"),
+        ("co2_prediction_error", "FLOAT"),
+        ("co2_absolute_error", "FLOAT"),
+        ("co2_percentage_error", "FLOAT"),
+        ("energy_prediction_error", "FLOAT"),
+        ("energy_absolute_error", "FLOAT"),
+        ("energy_percentage_error", "FLOAT"),
+    ]
+    
+    async with AsyncSessionLocal() as session:
+        # Check if predictions table exists
+        result = await session.execute(text(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='predictions'"
+        ))
+        if not result.scalar():
+            logger.info("Tabla predictions no existe, se creará con create_all")
+            return
+        
+        # Get existing columns
+        result = await session.execute(text("PRAGMA table_info(predictions)"))
+        existing_columns = {row[1] for row in result.fetchall()}
+        
+        # Add missing columns
+        for col_name, col_type in new_columns:
+            if col_name not in existing_columns:
+                try:
+                    await session.execute(text(
+                        f"ALTER TABLE predictions ADD COLUMN {col_name} {col_type}"
+                    ))
+                    await session.commit()
+                    logger.info(f"✅ Columna agregada: {col_name}")
+                except Exception as e:
+                    logger.warning(f"No se pudo agregar columna {col_name}: {e}")
+
+
 async def init_database():
     """Inicializa la base de datos SQLite."""
     logger.info("🚀 Inicializando base de datos SQLite...")
@@ -29,6 +85,10 @@ async def init_database():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("✅ Tablas creadas")
+    
+    # Migrar tabla predictions si es necesario
+    await migrate_predictions_table()
+    logger.info("✅ Migraciones aplicadas")
     
     # Verificar si ya hay datos
     async with AsyncSessionLocal() as session:
