@@ -6,6 +6,13 @@ import { useQueryClient } from "@tanstack/react-query"
 export type AlertType = "anomaly" | "prediction" | "recommendation" | "system"
 export type AlertSeverity = "low" | "medium" | "high" | "critical"
 
+export interface AlertMetadata {
+  sede?: string
+  sector?: string
+  potential_savings_kwh?: number
+  [key: string]: unknown
+}
+
 export interface Alert {
   id: string
   type: AlertType
@@ -14,7 +21,7 @@ export interface Alert {
   message: string
   timestamp: string
   sede: string
-  metadata?: Record<string, unknown>
+  metadata?: AlertMetadata
 }
 
 interface UseWebSocketOptions {
