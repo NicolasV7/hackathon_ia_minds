@@ -35,27 +35,6 @@ services:
           cpus: '0.5'
           memory: 512M
 
-  # Data Loader - Automatically populates database with 275K records
-  data-loader:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.data-loader
-    container_name: uptc_data_loader
-    environment:
-      DATABASE_URL: postgresql+asyncpg://uptc_user:uptc_password_2024@database:5432/uptc_energy
-      CSV_PATH: /data/consumos_uptc.csv
-    volumes:
-      - ./consumos_uptc_hackday:/data:ro
-    networks:
-      - uptc_network
-    depends_on:
-      database:
-        condition: service_healthy
-    restart: "no"
-    deploy:
-      restart_policy:
-        condition: none
-
   # FastAPI Backend - Fully configured with OpenAI
   backend:
     build:
@@ -77,8 +56,6 @@ services:
     depends_on:
       database:
         condition: service_healthy
-      data-loader:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
