@@ -4,7 +4,7 @@ Main API v1 router that combines all endpoint modules.
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import predictions, anomalies, recommendations, analytics
+from app.api.v1.endpoints import predictions, anomalies, recommendations, analytics, db_check
 
 api_router = APIRouter()
 
@@ -13,3 +13,4 @@ api_router.include_router(predictions.router)
 api_router.include_router(anomalies.router)
 api_router.include_router(recommendations.router)
 api_router.include_router(analytics.router)
+api_router.include_router(db_check.router)
