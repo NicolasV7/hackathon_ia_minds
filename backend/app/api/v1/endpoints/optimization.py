@@ -184,18 +184,43 @@ async def get_pareto_analysis(
     Returns causes sorted by impact with cumulative percentage.
     """
     try:
-        pareto = [
-            {"causa": "Climatización 24/7", "porcentaje": 35, "acumulado": 35, 
+        # Base Pareto data
+        base_pareto = [
+            {"causa": "Climatización 24/7", "porcentaje": 35, 
              "descripcion": "Sistemas HVAC funcionando fuera de horario"},
-            {"causa": "Iluminación sin uso", "porcentaje": 25, "acumulado": 60,
+            {"causa": "Iluminación sin uso", "porcentaje": 25,
              "descripcion": "Luces encendidas en espacios vacíos"},
-            {"causa": "Equipos en standby", "porcentaje": 18, "acumulado": 78,
+            {"causa": "Equipos en standby", "porcentaje": 18,
              "descripcion": "Computadores y equipos en modo espera"},
-            {"causa": "Fugas de agua", "porcentaje": 12, "acumulado": 90,
+            {"causa": "Fugas de agua", "porcentaje": 12,
              "descripcion": "Pérdidas en sistema de distribución"},
-            {"causa": "Otros", "porcentaje": 10, "acumulado": 100,
+            {"causa": "Otros", "porcentaje": 10,
              "descripcion": "Otros consumos no optimizados"}
         ]
+        
+        # Sede-specific variations (adjust percentages based on sede characteristics)
+        sede_variations = {
+            "tunja": [35, 25, 18, 12, 10],  # Base - balanced
+            "duitama": [40, 22, 15, 13, 10],  # Higher HVAC (older buildings)
+            "sogamoso": [32, 28, 16, 14, 10],  # Higher lighting (more classrooms)
+            "chiquinquira": [30, 20, 20, 15, 15]  # Higher others (smaller, less optimized)
+        }
+        
+        # Get variations for the sede
+        variations = sede_variations.get(sede.lower() if sede else "tunja", sede_variations["tunja"])
+        
+        # Build Pareto with variations
+        pareto = []
+        acumulado = 0
+        for i, item in enumerate(base_pareto):
+            porcentaje = variations[i]
+            acumulado += porcentaje
+            pareto.append({
+                "causa": item["causa"],
+                "porcentaje": porcentaje,
+                "acumulado": acumulado,
+                "descripcion": item["descripcion"]
+            })
         
         return pareto
         
