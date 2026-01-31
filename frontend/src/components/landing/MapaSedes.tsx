@@ -10,6 +10,45 @@ const MAP_STYLES = {
   streets: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
 };
 
+// Hook to detect system/document dark mode
+function useTheme() {
+  const [isDark, setIsDark] = React.useState(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      document.documentElement.classList.contains("dark") ||
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    );
+  });
+
+  React.useEffect(() => {
+    // Watch for class changes on html element
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    // Watch for system preference changes
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (!document.documentElement.classList.contains("dark") && 
+          !document.documentElement.classList.contains("light")) {
+        setIsDark(e.matches);
+      }
+    };
+    mediaQuery.addEventListener("change", handleChange);
+
+    return () => {
+      observer.disconnect();
+      mediaQuery.removeEventListener("change", handleChange);
+    };
+  }, []);
+
+  return isDark;
+}
+
 // Coordenadas de las sedes UPTC
 const SEDES_DATA = [
   {
@@ -71,6 +110,14 @@ export function MapaSedes({ className }: MapaSedesProps) {
   const mapRef = React.useRef<maplibregl.Map | null>(null);
   const markersRef = React.useRef<maplibregl.Marker[]>([]);
   const popupRef = React.useRef<maplibregl.Popup | null>(null);
+  const isDark = useTheme();
+
+  // Update map style when theme changes
+  React.useEffect(() => {
+    if (mapRef.current) {
+      mapRef.current.setStyle(isDark ? MAP_STYLES.dark : MAP_STYLES.light);
+    }
+  }, [isDark]);
 
   React.useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -80,7 +127,7 @@ export function MapaSedes({ className }: MapaSedesProps) {
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: MAP_STYLES.light,
+      style: isDark ? MAP_STYLES.dark : MAP_STYLES.light,
       center: [center.lng, center.lat],
       zoom: 9,
       minZoom: 8,
@@ -125,8 +172,13 @@ export function MapaSedes({ className }: MapaSedesProps) {
           popupRef.current.remove();
         }
 
+        const isDarkMode = document.documentElement.classList.contains("dark");
+        const bgClass = isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900";
+        const textMuted = isDarkMode ? "text-gray-400" : "text-gray-600";
+        const borderColor = isDarkMode ? "border-gray-700" : "border-gray-200";
+
         const popupContent = `
-          <div class="sede-popup" style="min-width: 280px;">
+          <div class="sede-popup ${bgClass}" style="min-width: 280px;">
             <div class="p-4">
               <div class="flex items-center gap-2 mb-3">
                 <div class="w-3 h-3 rounded-full" style="background-color: ${sede.color};"></div>
@@ -135,29 +187,29 @@ export function MapaSedes({ className }: MapaSedesProps) {
               
               <div class="space-y-2 text-sm">
                 <div class="flex items-center justify-between">
-                  <span class="text-gray-600">👥 Estudiantes:</span>
-                  <span class="font-semibold">${sede.estudiantes.toLocaleString()}</span>
+                  <span class="${textMuted}">Estudiantes:</span>
+                  <span class="font-semibold tabular-nums">${sede.estudiantes.toLocaleString()}</span>
                 </div>
                 
                 <div class="flex items-center justify-between">
-                  <span class="text-gray-600">⚡ Energía:</span>
-                  <span class="font-semibold">${sede.consumo_energia.toLocaleString()} kWh/mes</span>
+                  <span class="${textMuted}">Energia:</span>
+                  <span class="font-semibold tabular-nums">${sede.consumo_energia.toLocaleString()} kWh/mes</span>
                 </div>
                 
                 <div class="flex items-center justify-between">
-                  <span class="text-gray-600">💧 Agua:</span>
-                  <span class="font-semibold">${sede.consumo_agua.toLocaleString()} m³/mes</span>
+                  <span class="${textMuted}">Agua:</span>
+                  <span class="font-semibold tabular-nums">${sede.consumo_agua.toLocaleString()} m3/mes</span>
                 </div>
                 
                 <div class="flex items-center justify-between">
-                  <span class="text-gray-600">🌱 CO2:</span>
-                  <span class="font-semibold">${sede.emisiones_co2} ton/mes</span>
+                  <span class="${textMuted}">CO2:</span>
+                  <span class="font-semibold tabular-nums">${sede.emisiones_co2} ton/mes</span>
                 </div>
               </div>
               
-              <div class="mt-3 pt-3 border-t border-gray-200">
+              <div class="mt-3 pt-3 border-t ${borderColor}">
                 <div class="flex items-center justify-between">
-                  <span class="text-xs text-gray-500">Nivel de consumo:</span>
+                  <span class="text-xs ${textMuted}">Nivel de consumo:</span>
                   <span class="text-xs font-medium px-2 py-1 rounded-full text-white" 
                         style="background-color: ${sede.color};">${sede.nivel}</span>
                 </div>
@@ -199,8 +251,8 @@ export function MapaSedes({ className }: MapaSedesProps) {
       <div ref={containerRef} className="absolute inset-0 w-full h-full rounded-xl overflow-hidden" />
       
       {/* Leyenda */}
-      <div className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg p-4 shadow-lg z-10">
-        <h4 className="font-semibold text-sm mb-3 text-gray-800">Consumo Energético</h4>
+      <div className="absolute bottom-4 right-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-lg z-10">
+        <h4 className="font-semibold text-sm mb-3 text-gray-800 dark:text-gray-100">Consumo Energetico</h4>
         <div className="space-y-2">
           {[
             { color: "#ef4444", label: "Alto (+40k kWh/mes)", range: "+40,000" },
@@ -210,19 +262,19 @@ export function MapaSedes({ className }: MapaSedesProps) {
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-2">
               <div 
-                className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                className="w-4 h-4 rounded-full border-2 border-white dark:border-gray-800 shadow-sm"
                 style={{ backgroundColor: item.color }}
               />
-              <span className="text-xs text-gray-600">{item.label}</span>
+              <span className="text-xs text-gray-600 dark:text-gray-400">{item.label}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Título */}
-      <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg px-4 py-2 shadow-lg z-10">
-        <div className="text-sm font-semibold text-gray-800">Sedes UPTC - Boyacá</div>
-        <div className="text-xs text-gray-500">4 sedes universitarias</div>
+      {/* Titulo */}
+      <div className="absolute top-4 left-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 shadow-lg z-10">
+        <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">Sedes UPTC - Boyaca</div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">4 sedes universitarias</div>
       </div>
     </div>
   );
