@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { TrendingDown, TrendingUp, ArrowRight, TreeDeciduous, Droplets, Cloud, Lightbulb, Target } from 'lucide-react';
+import { TrendingDown, TreeDeciduous, Droplets, Cloud, Lightbulb, Target, Scale } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/loading-screen';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import {
   getSavingsProjection,
   getSustainabilityContribution,
@@ -137,8 +138,12 @@ export default function BalancesPage() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Cargando balances...</div>
+      <div className="p-6">
+        <LoadingScreen 
+          variant="balances"
+          title="Cargando Balances"
+          description="Calculando proyecciones de ahorro y sostenibilidad..."
+        />
       </div>
     );
   }
@@ -146,27 +151,20 @@ export default function BalancesPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Target className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            <Scale className="w-6 h-6 text-emerald-400" />
             Balances Energeticos
           </h1>
-          <p className="text-muted-foreground">Comparativo entrada/salida, perdidas y evolucion del ahorro por sede</p>
+          <p className="text-sm text-muted-foreground mt-1">Proyecciones de ahorro y contribucion a sostenibilidad</p>
         </div>
-        <div className="flex gap-3">
-          <Select value={selectedSede} onValueChange={setSelectedSede}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Seleccionar Sede" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las sedes</SelectItem>
-              {sedes.map((sede) => (
-                <SelectItem key={sede.id} value={sede.id}>{sede.nombre}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <SedeSelector
+          sedes={sedes}
+          selectedSede={selectedSede}
+          onSedeChange={setSelectedSede}
+          showAllOption={true}
+        />
       </div>
 
       {/* Opportunities and Areas */}

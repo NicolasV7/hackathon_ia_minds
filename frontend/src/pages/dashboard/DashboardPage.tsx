@@ -11,16 +11,18 @@ import {
   Gauge,
   ArrowRight,
   RefreshCw,
+  LayoutDashboard,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { getDashboardKPIs, getConsumptionTrends, getUnresolvedAnomalies, getSedesInfo, type DashboardKPIs, type ConsumptionTrend, type Anomaly, type SedeInfo } from '@/services/api';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  AreaChart, Area,
+  ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Area,
 } from 'recharts';
 import Chatbot from '@/components/Chatbot';
+import { LoadingScreen } from '@/components/ui/loading-screen';
+import { SedeSelector } from '@/components/ui/sede-selector';
 
 // Calculate trend percentage from trends data
 const calculateTrend = (current: number, previous: number): number => {
@@ -112,7 +114,7 @@ export default function DashboardPage() {
         { id: '3', sede: 'Sogamoso', sector: 'Oficinas', fecha: '2025-01-29 14:20', tipo: 'anomalia', severidad: 'media', estado: 'pendiente', descripcion: 'Consumo elevado en fin de semana', valor_detectado: 890, valor_esperado: 200 },
       ]);
       setSedes([
-        { id: 'tunja', nombre: 'Tunja (Principal)', estudiantes: 18000, lat: 5.5353, lng: -73.3678, consumo_energia: 45000, consumo_agua: 9500, emisiones_co2: 68 },
+        { id: 'tunja', nombre: 'Tunja', estudiantes: 18000, lat: 5.5353, lng: -73.3678, consumo_energia: 45000, consumo_agua: 9500, emisiones_co2: 68 },
         { id: 'duitama', nombre: 'Duitama', estudiantes: 5500, lat: 5.8267, lng: -73.0333, consumo_energia: 18200, consumo_agua: 3800, emisiones_co2: 27 },
         { id: 'sogamoso', nombre: 'Sogamoso', estudiantes: 6000, lat: 5.7147, lng: -72.9314, consumo_energia: 15500, consumo_agua: 3200, emisiones_co2: 23 },
         { id: 'chiquinquira', nombre: 'Chiquinquira', estudiantes: 2000, lat: 5.6167, lng: -73.8167, consumo_energia: 6800, consumo_agua: 1400, emisiones_co2: 10 },
@@ -154,11 +156,12 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="p-6 flex items-center justify-center min-h-screen" aria-busy="true" aria-label="Cargando dashboard">
-        <div className="flex flex-col items-center gap-3">
-          <RefreshCw className="w-8 h-8 text-primary animate-spin" />
-          <p className="text-muted-foreground">Cargando datos...</p>
-        </div>
+      <main className="p-6" aria-busy="true" aria-label="Cargando dashboard">
+        <LoadingScreen 
+          variant="default"
+          title="Cargando Dashboard"
+          description="Obteniendo KPIs y metricas del sistema..."
+        />
       </main>
     );
   }
@@ -170,7 +173,10 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-balance">Dashboard Ejecutivo</h1>
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            <LayoutDashboard className="w-6 h-6 text-primary" />
+            Dashboard Ejecutivo
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Ultima actualizacion: <time className="tabular-nums">{lastUpdate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</time>
           </p>
@@ -186,17 +192,12 @@ export default function DashboardPage() {
             <RefreshCw className="w-4 h-4" />
             <span className="hidden sm:inline">Actualizar</span>
           </Button>
-          <Select value={selectedSede} onValueChange={setSelectedSede}>
-            <SelectTrigger className="w-44" aria-label="Filtrar por sede">
-              <SelectValue placeholder="Todas las sedes" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las sedes</SelectItem>
-              {sedes.map((sede) => (
-                <SelectItem key={sede.id} value={sede.id}>{sede.nombre}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SedeSelector
+            sedes={sedes}
+            selectedSede={selectedSede}
+            onSedeChange={setSelectedSede}
+            showAllOption={true}
+          />
         </div>
       </header>
 
@@ -282,7 +283,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="h-[280px]" role="img" aria-label="Grafico de lineas mostrando consumo energetico real vs prediccion">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trends}>
+                <ComposedChart data={trends}>
                   <defs>
                     <linearGradient id="energyGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(45, 100%, 51%)" stopOpacity={0.2}/>
@@ -311,7 +312,10 @@ export default function DashboardPage() {
                       borderRadius: '8px',
                       fontSize: '12px',
                     }}
-                    formatter={(value: number) => [`${value.toLocaleString()} kWh`, '']}
+                    formatter={(value: number, name: string) => [
+                      `${value.toLocaleString()} kWh`, 
+                      name === 'energia_real' ? 'Real' : 'Prediccion'
+                    ]}
                   />
                   <Area 
                     type="monotone" 
@@ -319,7 +323,7 @@ export default function DashboardPage() {
                     stroke="hsl(45, 100%, 51%)" 
                     strokeWidth={2} 
                     fill="url(#energyGradient)"
-                    name="Real"
+                    name="energia_real"
                   />
                   <Line 
                     type="monotone" 
@@ -328,9 +332,9 @@ export default function DashboardPage() {
                     strokeWidth={2} 
                     strokeDasharray="5 5" 
                     dot={false}
-                    name="Prediccion"
+                    name="energia_predicha"
                   />
-                </AreaChart>
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </CardContent>

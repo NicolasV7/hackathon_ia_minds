@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Brain, HelpCircle, BarChart3, CheckCircle } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/loading-screen';
 import {
   getShapValues,
   getModelConfidence,
@@ -71,8 +72,12 @@ export default function ExplicabilidadPage() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Cargando explicabilidad...</div>
+      <div className="p-6">
+        <LoadingScreen 
+          variant="models"
+          title="Cargando Explicabilidad"
+          description="Calculando SHAP values e importancia de features..."
+        />
       </div>
     );
   }
@@ -80,14 +85,12 @@ export default function ExplicabilidadPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Brain className="w-6 h-6 text-primary" />
-            Explicabilidad del Modelo
-          </h1>
-          <p className="text-muted-foreground">Transparencia y auditabilidad de las predicciones con SHAP values</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+          <Brain className="w-6 h-6 text-purple-400" />
+          Explicabilidad del Modelo
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">Transparencia y auditabilidad de predicciones con SHAP values</p>
       </div>
 
       {/* Variable Selector */}

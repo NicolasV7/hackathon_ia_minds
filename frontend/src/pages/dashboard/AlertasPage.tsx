@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
 import { AlertTriangle, Clock, CheckCircle, Eye, Filter } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/loading-screen';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import {
   getUnresolvedAnomalies,
   getAlertEvolution,
@@ -136,8 +137,12 @@ export default function AlertasPage() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Cargando alertas...</div>
+      <div className="p-6">
+        <LoadingScreen 
+          variant="alerts"
+          title="Cargando Alertas"
+          description="Analizando anomalias con Isolation Forest..."
+        />
       </div>
     );
   }
@@ -145,14 +150,20 @@ export default function AlertasPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <AlertTriangle className="w-6 h-6 text-warning" />
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            <AlertTriangle className="w-6 h-6 text-amber-400" />
             Gestion de Alertas
           </h1>
-          <p className="text-muted-foreground">Deteccion de anomalias con Isolation Forest y explicabilidad de predicciones</p>
+          <p className="text-sm text-muted-foreground mt-1">Deteccion de anomalias y explicabilidad de predicciones</p>
         </div>
+        <SedeSelector
+          sedes={sedes}
+          selectedSede={selectedSede}
+          onSedeChange={setSelectedSede}
+          showAllOption={true}
+        />
       </div>
 
       {/* Alert Banner */}

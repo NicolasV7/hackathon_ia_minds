@@ -1,8 +1,36 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Activity, Shield, BarChart3, Cpu, ChevronRight, LogIn } from 'lucide-react';
+import { ArrowRight, Activity, Shield, BarChart3, Cpu, ChevronRight, LogIn, Linkedin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MapaSedes } from '@/components/landing/MapaSedes';
 import { Logo } from '@/components/ui/logo';
+
+// Team members data
+const teamMembers = [
+  {
+    name: 'Nicolas De La Pava',
+    initials: 'ND',
+    linkedin: 'nicolasdlp',
+    color: 'from-amber-500 to-orange-600',
+  },
+  {
+    name: 'Sebastian Dosman',
+    initials: 'SD',
+    linkedin: 'sebastiandosman',
+    color: 'from-sky-500 to-blue-600',
+  },
+  {
+    name: 'Lilian Maradiago',
+    initials: 'LM',
+    linkedin: 'lilian-estefania-maradiago-correa-40b423244',
+    color: 'from-purple-500 to-violet-600',
+  },
+  {
+    name: 'Valeria Rudas',
+    initials: 'VR',
+    linkedin: 'valeria-rudas-ruiz-941a0715b',
+    color: 'from-emerald-500 to-teal-600',
+  },
+];
 
 // Metrics data with tabular numbers for alignment
 const metrics = [
@@ -308,8 +336,53 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Team Section */}
+        <section id="equipo" className="py-24 px-6" aria-labelledby="team-heading">
+          <div className="container mx-auto max-w-4xl">
+            <header className="text-center mb-16">
+              <h2 id="team-heading" className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+                Equipo de Desarrollo
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Estudiantes de Ingenieria de Sistemas de la UPTC comprometidos con la innovacion y la sostenibilidad
+              </p>
+            </header>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+              {teamMembers.map((member, index) => (
+                <a
+                  key={index}
+                  href={`https://www.linkedin.com/in/${member.linkedin}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex flex-col items-center text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl p-4 -m-4 transition-colors hover:bg-secondary/50"
+                  aria-label={`Ver perfil de LinkedIn de ${member.name}`}
+                >
+                  {/* Avatar with initials */}
+                  <div className="relative mb-4">
+                    <div className={`w-24 h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-br ${member.color} flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300`}>
+                      <span className="text-2xl md:text-3xl font-bold text-white">
+                        {member.initials}
+                      </span>
+                    </div>
+                    {/* LinkedIn badge */}
+                    <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#0A66C2] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                      <Linkedin className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                  
+                  {/* Name */}
+                  <h3 className="font-semibold text-sm md:text-base group-hover:text-primary transition-colors">
+                    {member.name}
+                  </h3>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* CTA Section */}
-        <section className="py-24 px-6" aria-labelledby="cta-heading">
+        <section className="py-24 px-6 bg-secondary/20" aria-labelledby="cta-heading">
           <div className="container mx-auto max-w-3xl text-center">
             <h2 id="cta-heading" className="text-2xl md:text-3xl font-bold tracking-tight mb-4">
               Inicia el monitoreo de tu sede

@@ -13,6 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Logo, LogoIcon } from '@/components/ui/logo';
+import ApiStatus from '@/components/ui/api-status';
 
 const mainMenuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -107,6 +108,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           'border-t border-border/50',
           collapsed ? 'p-2' : 'p-3'
         )}>
+          {/* API Status */}
+          {!collapsed && (
+            <div className="mb-2 px-1">
+              <ApiStatus />
+            </div>
+          )}
+          
           {/* Collapse Toggle */}
           <Button
             variant="ghost"

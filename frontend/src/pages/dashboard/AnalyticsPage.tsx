@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   getSectorBreakdown,
   getHourlyPatterns,
@@ -16,12 +15,15 @@ import {
   type SedeInfo,
 } from '@/services/api';
 import {
-  PieChart, Pie, Cell, LineChart, Line, BarChart, Bar,
+  PieChart, Pie, Cell, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  ComposedChart,
+  ComposedChart, Line,
 } from 'recharts';
 import Chatbot from '@/components/Chatbot';
-import { TreeDeciduous, Droplets, Lightbulb } from 'lucide-react';
+import { TreeDeciduous, Droplets, Lightbulb, BarChart3 } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/loading-screen';
+import { SedeSelector } from '@/components/ui/sede-selector';
+import { SectorSelector } from '@/components/ui/sector-selector';
 
 const COLORS = ['hsl(45, 100%, 51%)', 'hsl(199, 89%, 48%)', 'hsl(142, 76%, 36%)', 'hsl(280, 65%, 60%)', 'hsl(0, 84%, 60%)'];
 
@@ -38,7 +40,7 @@ export default function AnalyticsPage() {
   const [opportunities, setOpportunities] = useState<{ area: string; potencial_ahorro: number; descripcion: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const sectors = ['Comedores', 'Salones', 'Laboratorios', 'Auditorios', 'Oficinas'];
+
 
   useEffect(() => {
     async function fetchData() {
@@ -66,7 +68,7 @@ export default function AnalyticsPage() {
         console.error('[Analytics] Error fetching data:', error);
         // Mock data fallback
         setSedes([
-          { id: 'tunja', nombre: 'Tunja (Principal)', estudiantes: 18000, lat: 5.5353, lng: -73.3678, consumo_energia: 45000, consumo_agua: 9500, emisiones_co2: 68 },
+          { id: 'tunja', nombre: 'Tunja', estudiantes: 18000, lat: 5.5353, lng: -73.3678, consumo_energia: 45000, consumo_agua: 9500, emisiones_co2: 68 },
           { id: 'duitama', nombre: 'Duitama', estudiantes: 5500, lat: 5.8267, lng: -73.0333, consumo_energia: 18200, consumo_agua: 3800, emisiones_co2: 27 },
           { id: 'sogamoso', nombre: 'Sogamoso', estudiantes: 6000, lat: 5.7147, lng: -72.9314, consumo_energia: 15500, consumo_agua: 3200, emisiones_co2: 23 },
           { id: 'chiquinquira', nombre: 'Chiquinquira', estudiantes: 2000, lat: 5.6167, lng: -73.8167, consumo_energia: 6800, consumo_agua: 1400, emisiones_co2: 10 },
@@ -128,8 +130,12 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Cargando analytics...</div>
+      <div className="p-6">
+        <LoadingScreen 
+          variant="analytics"
+          title="Cargando Analytics"
+          description="Procesando datos de consumo y correlaciones..."
+        />
       </div>
     );
   }
@@ -137,33 +143,25 @@ export default function AnalyticsPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Analytics</h1>
-          <p className="text-muted-foreground">Analisis detallado de consumo, correlaciones y oportunidades de optimizacion</p>
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            <BarChart3 className="w-6 h-6 text-sky-400" />
+            Analytics
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">Analisis detallado de consumo, correlaciones y oportunidades</p>
         </div>
         <div className="flex gap-3">
-          <Select value={selectedSede} onValueChange={setSelectedSede}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Seleccionar Sede" />
-            </SelectTrigger>
-            <SelectContent>
-              {sedes.map((sede) => (
-                <SelectItem key={sede.id} value={sede.id}>{sede.nombre}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={selectedSector} onValueChange={setSelectedSector}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Seleccionar Sector" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los sectores</SelectItem>
-              {sectors.map((sector) => (
-                <SelectItem key={sector} value={sector.toLowerCase()}>{sector}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SedeSelector
+            sedes={sedes}
+            selectedSede={selectedSede}
+            onSedeChange={setSelectedSede}
+            showAllOption={false}
+          />
+          <SectorSelector
+            selectedSector={selectedSector}
+            onSectorChange={setSelectedSector}
+          />
         </div>
       </div>
 
