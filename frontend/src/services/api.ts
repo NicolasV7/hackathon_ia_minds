@@ -193,7 +193,7 @@ export async function getAnomalySummary(sede: string): Promise<{ total: number; 
 }
 
 export async function getUnresolvedAnomalies(sede?: string): Promise<Anomaly[]> {
-  const endpoint = sede ? `/api/v1/anomalies/sede/${sede}` : '/api/v1/anomalies/unresolved';
+  const endpoint = sede ? `/api/v1/anomalies/detected?sede=${sede}` : '/api/v1/anomalies/detected';
   return apiRequest(endpoint, {}, () => getMockAnomalies());
 }
 
