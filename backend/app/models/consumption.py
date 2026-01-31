@@ -19,7 +19,7 @@ class ConsumptionRecord(Base):
     
     # Location
     sede = Column(String(50), nullable=False, index=True)
-    sede_id = Column(String(20), nullable=False)
+    sede_id = Column(String(20), nullable=True)  # Made nullable for CSV import
     
     # Total energy metrics
     energia_total_kwh = Column(Float, nullable=False)
