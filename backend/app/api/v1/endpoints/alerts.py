@@ -12,10 +12,14 @@ from datetime import datetime, timedelta
 
 from app.core.dependencies import get_db
 from app.models.anomaly import Anomaly
+from app.services.anomaly_service import AnomalyService
+from app.repositories.consumption_repository import ConsumptionRepository
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
+anomaly_service = AnomalyService()
+consumption_repo = ConsumptionRepository()
 
 
 @router.get("/evolution")
@@ -28,6 +32,7 @@ async def get_alert_evolution(
     Get alert evolution over time.
     
     Returns monthly breakdown of anomalies, desbalances, and critical alerts.
+    If no anomalies exist, runs historical detection on consumption data.
     """
     try:
         # Try to get real data from database
@@ -43,6 +48,39 @@ async def get_alert_evolution(
             
         result = await db.execute(query)
         anomalies = result.scalars().all()
+        
+        # If no anomalies found, run historical detection
+        if not anomalies:
+            logger.info("No anomalies found, running historical detection...")
+            
+            # Detect anomalies for historical data
+            sedes_to_process = [sede] if sede else ["tunja", "duitama", "sogamoso", "chiquinquira"]
+            
+            for process_sede in sedes_to_process:
+                try:
+                    # Process month by month
+                    current_date = start_date
+                    while current_date < end_date:
+                        month_end = min(current_date + timedelta(days=30), end_date)
+                        
+                        # Run detection for this month
+                        await anomaly_service.detect_anomalies(
+                            db=db,
+                            sede=process_sede,
+                            start_date=current_date,
+                            end_date=month_end,
+                            severity_threshold=None
+                        )
+                        
+                        current_date = month_end
+                        
+                except Exception as detect_error:
+                    logger.error(f"Error detecting historical anomalies for {process_sede}: {detect_error}")
+                    continue
+            
+            # Get newly detected anomalies
+            result = await db.execute(query)
+            anomalies = result.scalars().all()
         
         # Group by month
         month_data = {}
@@ -72,33 +110,12 @@ async def get_alert_evolution(
             sorted_data = sorted(month_data.items())
             return [v for k, v in sorted_data[-months:]]
         
-        # Return sample data if no real data
-        current_month = datetime.utcnow().month
-        evolution = []
-        
-        for i in range(months):
-            month_idx = (current_month - months + i) % 12
-            evolution.append({
-                "mes": month_names[month_idx],
-                "anomalias": 8 + (i % 5) * 2,
-                "desbalances": 4 + (i % 3),
-                "criticas": 1 + (i % 3)
-            })
-        
-        return evolution
+        # Return empty if still no data
+        return []
         
     except Exception as e:
         logger.error(f"Error getting alert evolution: {e}")
-        # Return sample data on error
-        return [
-            {"mes": "Ene", "anomalias": 8, "desbalances": 4, "criticas": 2},
-            {"mes": "Feb", "anomalias": 10, "desbalances": 5, "criticas": 3},
-            {"mes": "Mar", "anomalias": 12, "desbalances": 6, "criticas": 2},
-            {"mes": "Abr", "anomalias": 15, "desbalances": 8, "criticas": 4},
-            {"mes": "May", "anomalias": 11, "desbalances": 5, "criticas": 2},
-            {"mes": "Jun", "anomalias": 9, "desbalances": 4, "criticas": 1},
-            {"mes": "Jul", "anomalias": 13, "desbalances": 6, "criticas": 3}
-        ]
+        return []
 
 
 @router.get("/summary")
