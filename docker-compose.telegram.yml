@@ -6,6 +6,6 @@ services:
       context: ./telegram_bot
     container_name: uptc_telegram_bot
     env_file:
-      - .env
+      - ${PWD}/telegram_bot/.env
     restart: unless-stopped
     # If you want logs in compose output, remove 'detach' when running
