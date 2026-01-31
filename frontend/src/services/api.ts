@@ -1,7 +1,6 @@
 // API Configuration for FastAPI Backend
-// In production (Docker), nginx proxies /api/ to backend, so we use empty string
-// In development, we use http://localhost:8000 directly
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
+// Use environment variable or default to production backend URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://77.42.26.173:8000';
 const DEBUG = import.meta.env.VITE_DEBUG === 'true';
 
 // Generic fetch wrapper with error handling
@@ -12,7 +11,7 @@ async function apiRequest<T>(
 ): Promise<T> {
   try {
     const url = `${API_BASE_URL}${endpoint}`;
-    if (DEBUG) console.log(`API Request: ${url}`);
+    console.log(`[API] Request: ${url}`);
     
     const response = await fetch(url, {
       headers: {
@@ -27,12 +26,12 @@ async function apiRequest<T>(
     }
 
     const data = await response.json();
-    if (DEBUG) console.log(`API Response: ${url}`, data);
+    console.log(`[API] Response from ${endpoint}:`, data);
     return data;
   } catch (error) {
-    console.warn(`API Error: ${endpoint}`, error);
+    console.error(`[API] Error for ${endpoint}:`, error);
     if (fallbackData) {
-      console.log(`Using fallback data for ${endpoint}`);
+      console.log(`[API] Using fallback data for ${endpoint}`);
       return fallbackData();
     }
     throw error;
