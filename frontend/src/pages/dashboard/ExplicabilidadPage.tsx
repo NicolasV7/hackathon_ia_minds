@@ -35,32 +35,6 @@ export default function ExplicabilidadPage() {
         setModels(modelsData);
       } catch (error) {
         console.error('Error fetching explainability data:', error);
-        // Mock data
-        setShapValues([
-          { feature: 'hora_del_dia', value: 18 },
-          { feature: 'dia_semana', value: 15 },
-          { feature: 'temperatura', value: 12 },
-          { feature: 'ocupacion', value: 8 },
-          { feature: 'historico', value: -5 },
-          { feature: 'estacionalidad', value: -8 },
-        ]);
-        setConfidence({ confianza_prediccion: 94.2, certeza_recomendacion: 87.5, modelo_activo: 'XGBoost v2.0' });
-        setModels([
-          {
-            nombre: 'XGBoost',
-            mae: 0.042,
-            rmse: 0.068,
-            r2_score: 0.94,
-            tiempo_entrenamiento: '3.2 min',
-            activo: true,
-            version: '2.0.3',
-            framework: 'Scikit-Learn 1.3.2',
-            fecha_entrenamiento: '2025-01-15',
-            datos_entrenamiento: 15240,
-            hiperparametros: { n_estimators: 100, max_depth: 6 },
-            feature_importance: { volumen_corregido: 0.35, hora_del_dia: 0.22 },
-          },
-        ]);
       } finally {
         setLoading(false);
       }

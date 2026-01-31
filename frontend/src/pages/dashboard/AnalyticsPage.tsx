@@ -42,20 +42,28 @@ export default function AnalyticsPage() {
 
 
 
+  // Fetch data when sede or sector changes
   useEffect(() => {
     async function fetchData() {
+      setLoading(true);
+      console.log(`[Analytics] Fetching data for sede: ${selectedSede}, sector: ${selectedSector}`);
       try {
         const [sedesData, sectorRes, hourlyRes, corrRes, academicRes, paretoRes, sustRes, oppRes] = await Promise.all([
           getSedesInfo(),
           getSectorBreakdown(selectedSede),
-          getHourlyPatterns(selectedSede),
+          getHourlyPatterns(selectedSede, selectedSector),
           getCorrelationMatrix(selectedSede),
           getAcademicPeriodConsumption(),
           getParetoAnalysis(selectedSede),
           getSustainabilityContribution(selectedSede),
           getOptimizationOpportunities(selectedSede),
         ]);
-        console.log('[Analytics] Sector data received:', sectorRes);
+        console.log('[Analytics] Data received:', {
+          sede: selectedSede,
+          sector: selectedSector,
+          sectorData: sectorRes,
+          hourlyData: hourlyRes
+        });
         setSedes(sedesData);
         setSectorData(sectorRes);
         setHourlyData(hourlyRes);
@@ -66,67 +74,23 @@ export default function AnalyticsPage() {
         setOpportunities(oppRes);
       } catch (error) {
         console.error('[Analytics] Error fetching data:', error);
-        // Mock data fallback
-        setSedes([
-          { id: 'tunja', nombre: 'Tunja', estudiantes: 18000, lat: 5.5353, lng: -73.3678, consumo_energia: 45000, consumo_agua: 9500, emisiones_co2: 68 },
-          { id: 'duitama', nombre: 'Duitama', estudiantes: 5500, lat: 5.8267, lng: -73.0333, consumo_energia: 18200, consumo_agua: 3800, emisiones_co2: 27 },
-          { id: 'sogamoso', nombre: 'Sogamoso', estudiantes: 6000, lat: 5.7147, lng: -72.9314, consumo_energia: 15500, consumo_agua: 3200, emisiones_co2: 23 },
-          { id: 'chiquinquira', nombre: 'Chiquinquira', estudiantes: 2000, lat: 5.6167, lng: -73.8167, consumo_energia: 6800, consumo_agua: 1400, emisiones_co2: 10 },
-        ]);
-        setSectorData([
-          { sector: 'Laboratorios', energia: 35, agua: 40, co2: 38, porcentaje: 35 },
-          { sector: 'Comedores', energia: 25, agua: 30, co2: 25, porcentaje: 25 },
-          { sector: 'Salones', energia: 20, agua: 15, co2: 18, porcentaje: 20 },
-          { sector: 'Oficinas', energia: 12, agua: 10, co2: 12, porcentaje: 12 },
-          { sector: 'Auditorios', energia: 8, agua: 5, co2: 7, porcentaje: 8 },
-        ]);
-        setHourlyData([
-          { hora: '06:00', energia: 35, agua: 20, co2: 30 },
-          { hora: '08:00', energia: 65, agua: 45, co2: 55 },
-          { hora: '10:00', energia: 85, agua: 60, co2: 75 },
-          { hora: '12:00', energia: 100, agua: 80, co2: 90 },
-          { hora: '14:00', energia: 95, agua: 75, co2: 85 },
-          { hora: '16:00', energia: 80, agua: 55, co2: 70 },
-          { hora: '18:00', energia: 60, agua: 40, co2: 50 },
-          { hora: '20:00', energia: 45, agua: 30, co2: 40 },
-          { hora: '22:00', energia: 30, agua: 20, co2: 25 },
-        ]);
-        setCorrelations({
-          variables: ['Energia', 'Agua', 'CO2', 'Temperatura'],
-          matrix: [
-            [1.0, 0.82, 0.95, -0.45],
-            [0.82, 1.0, 0.78, -0.32],
-            [0.95, 0.78, 1.0, -0.41],
-            [-0.45, -0.32, -0.41, 1.0],
-          ],
-        });
-        setAcademicPeriods([
-          { periodo: 'Semestre 1 2024', energia: 55000 },
-          { periodo: 'Vacaciones Jun', energia: 28000 },
-          { periodo: 'Semestre 2 2024', energia: 52000 },
-          { periodo: 'Vacaciones Dic', energia: 25000 },
-          { periodo: 'Semestre 1 2025', energia: 48000 },
-        ]);
-        setParetoData([
-          { causa: 'Climatizacion 24/7', porcentaje: 35, acumulado: 35 },
-          { causa: 'Iluminacion sin uso', porcentaje: 25, acumulado: 60 },
-          { causa: 'Equipos standby', porcentaje: 18, acumulado: 78 },
-          { causa: 'Fugas de agua', porcentaje: 12, acumulado: 90 },
-          { causa: 'Otros', porcentaje: 10, acumulado: 100 },
-        ]);
-        setSustainability({ arboles_salvados: 847, agua_ahorrada: 12500, co2_reducido: 125.3 });
-        setOpportunities([
-          { area: 'Climatizacion inteligente', potencial_ahorro: 15200, descripcion: 'Optimizar sistemas HVAC con sensores de ocupacion' },
-          { area: 'Sensores de presencia', potencial_ahorro: 8500, descripcion: 'Iluminacion automatica en aulas y pasillos' },
-        ]);
       } finally {
         setLoading(false);
       }
     }
     fetchData();
-  }, [selectedSede]);
+  }, [selectedSede, selectedSector]);
 
   const pieData = sectorData.map(s => ({ name: s.sector, value: s.porcentaje }));
+  
+  // Debug: mostrar datos actuales
+  console.log('[Analytics] Rendering with data:', {
+    selectedSede,
+    selectedSector,
+    sectorDataCount: sectorData.length,
+    hourlyDataCount: hourlyData.length,
+    pieData
+  });
 
   if (loading) {
     return (
@@ -170,11 +134,18 @@ export default function AnalyticsPage() {
         {/* Sector Distribution */}
         <Card className="chart-container">
           <CardHeader>
-            <CardTitle className="text-lg">Distribucion por Sector</CardTitle>
-            <p className="text-sm text-muted-foreground">Consumo energetico por tipo de espacio en {selectedSede}</p>
+            <CardTitle className="text-lg flex items-center gap-2">
+              Distribucion por Sector
+              <span className="text-xs font-normal text-muted-foreground bg-secondary px-2 py-1 rounded">
+                {selectedSede.toUpperCase()}
+              </span>
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Consumo energetico por tipo de espacio
+            </p>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[300px]" key={`pie-${selectedSede}-${JSON.stringify(pieData)}`}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -187,11 +158,15 @@ export default function AnalyticsPage() {
                     dataKey="value"
                     label={({ name, value }) => `${name}: ${value}%`}
                   >
-                    {pieData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    {pieData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${selectedSede}-${index}-${entry.value}`} 
+                        fill={COLORS[index % COLORS.length]} 
+                      />
                     ))}
                   </Pie>
                   <Tooltip
+                    formatter={(value: number, name: string) => [`${value}%`, name]}
                     contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
@@ -207,24 +182,40 @@ export default function AnalyticsPage() {
         {/* Hourly Patterns */}
         <Card className="chart-container">
           <CardHeader>
-            <CardTitle className="text-lg">Patrones Horarios</CardTitle>
-            <p className="text-sm text-muted-foreground">Distribucion del consumo a lo largo del dia</p>
+            <CardTitle className="text-lg flex items-center gap-2">
+              Patrones Horarios
+              <span className="text-xs font-normal text-muted-foreground bg-secondary px-2 py-1 rounded">
+                {selectedSede.toUpperCase()}
+              </span>
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {selectedSector === 'all' 
+                ? 'Distribucion del consumo a lo largo del dia - Todos los sectores'
+                : `Distribucion del consumo - Sector: ${selectedSector.charAt(0).toUpperCase() + selectedSector.slice(1)}`
+              }
+            </p>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[300px]" key={`bar-${selectedSede}-${selectedSector}-${hourlyData.length}`}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={hourlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="hora" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <Tooltip
+                    formatter={(value: number) => [`${value} kWh`, 'Consumo']}
                     contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
                     }}
                   />
-                  <Bar dataKey="energia" fill="hsl(var(--chart-energy))" radius={[4, 4, 0, 0]} />
+                  <Bar 
+                    dataKey="energia" 
+                    fill="hsl(var(--chart-energy))" 
+                    radius={[4, 4, 0, 0]}
+                    key={`bar-data-${selectedSede}`}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -237,32 +228,41 @@ export default function AnalyticsPage() {
         {/* Correlation Matrix */}
         <Card className="chart-container">
           <CardHeader>
-            <CardTitle className="text-lg">Correlacion entre Variables</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              Correlacion entre Variables
+              <span className="text-xs font-normal text-muted-foreground bg-secondary px-2 py-1 rounded">
+                {selectedSede.toUpperCase()}
+              </span>
+            </CardTitle>
             <p className="text-sm text-muted-foreground">Relacion entre Energia, Agua y CO2</p>
           </CardHeader>
-          <CardContent>
+          <CardContent key={`corr-${selectedSede}-${correlations.variables.join('-')}`}>
             <div className="space-y-3">
-              {[
-                { pair: 'Energia vs Agua', value: 0.82, color: 'bg-success' },
-                { pair: 'Energia vs CO2', value: 0.95, color: 'bg-success' },
-                { pair: 'Agua vs CO2', value: 0.78, color: 'bg-success' },
-                { pair: 'Temperatura vs Consumo', value: -0.45, color: 'bg-destructive' },
-              ].map((corr) => (
-                <div key={corr.pair} className="flex items-center gap-4">
-                  <span className="text-sm w-40">{corr.pair}</span>
-                  <div className="flex-1 h-4 bg-secondary rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.abs(corr.value) * 100}%` }}
-                      transition={{ duration: 0.5 }}
-                      className={`h-full ${corr.color} rounded-full`}
-                    />
-                  </div>
-                  <span className={`text-sm font-mono ${corr.value < 0 ? 'text-destructive' : 'text-success'}`}>
-                    {corr.value > 0 ? '+' : ''}{corr.value.toFixed(2)}
-                  </span>
-                </div>
-              ))}
+              {correlations.variables.length > 0 ? (
+                correlations.variables.slice(0, 4).map((var1, i) => {
+                  const var2 = correlations.variables[i + 1] || correlations.variables[0];
+                  const value = correlations.matrix[i]?.[i + 1] || 0;
+                  const pairName = `${var1} vs ${var2}`;
+                  return (
+                    <div key={`${selectedSede}-${pairName}`} className="flex items-center gap-4">
+                      <span className="text-sm w-40">{pairName}</span>
+                      <div className="flex-1 h-4 bg-secondary rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.abs(value) * 100}%` }}
+                          transition={{ duration: 0.5 }}
+                          className={`h-full ${value >= 0 ? 'bg-success' : 'bg-destructive'} rounded-full`}
+                        />
+                      </div>
+                      <span className={`text-sm font-mono ${value < 0 ? 'text-destructive' : 'text-success'}`}>
+                        {value > 0 ? '+' : ''}{value.toFixed(2)}
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-muted-foreground">No hay datos de correlacion disponibles</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -270,24 +270,36 @@ export default function AnalyticsPage() {
         {/* Academic Period Consumption */}
         <Card className="chart-container">
           <CardHeader>
-            <CardTitle className="text-lg">Consumo por Periodo Academico</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              Consumo por Periodo Academico
+              <span className="text-xs font-normal text-muted-foreground bg-secondary px-2 py-1 rounded">
+                {selectedSede.toUpperCase()}
+              </span>
+            </CardTitle>
             <p className="text-sm text-muted-foreground">Comparativo entre semestres y vacaciones</p>
           </CardHeader>
           <CardContent>
-            <div className="h-[250px]">
+            <div className="h-[250px]" key={`academic-${selectedSede}-${academicPeriods.length}`}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={academicPeriods} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis dataKey="periodo" type="category" stroke="hsl(var(--muted-foreground))" fontSize={11} width={100} />
                   <Tooltip
+                    formatter={(value: number) => [`${value.toLocaleString()} kWh`, 'Consumo']}
                     contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
                     }}
                   />
-                  <Bar dataKey="energia" fill="hsl(var(--chart-energy))" radius={[0, 4, 4, 0]} name="Energia (kWh)" />
+                  <Bar 
+                    dataKey="energia" 
+                    fill="hsl(var(--chart-energy))" 
+                    radius={[0, 4, 4, 0]} 
+                    name="Energia (kWh)"
+                    key={`academic-bar-${selectedSede}`}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>

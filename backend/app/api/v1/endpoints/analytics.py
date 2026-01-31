@@ -3,7 +3,7 @@ Analytics and dashboard endpoints.
 """
 
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -207,6 +207,7 @@ async def get_sector_breakdown(
 @router.get("/patterns/hourly/{sede}")
 async def get_hourly_patterns(
     sede: str,
+    sector: Optional[str] = Query(None, description="Filter by sector (e.g., laboratorios, comedores, salones)"),
     days: int = Query(30, ge=1, le=365, description="Number of days to analyze"),
     db: AsyncSession = Depends(get_db)
 ) -> List[Dict]:
@@ -215,6 +216,7 @@ async def get_hourly_patterns(
     
     Args:
         sede: Sede name
+        sector: Optional sector filter
         days: Number of days to analyze (default: 30)
         db: Database session
         
@@ -228,22 +230,84 @@ async def get_hourly_patterns(
         base_agua = sede_data["agua"] / 30 / 24
         base_co2 = sede_data["co2"] / 30 / 24
         
+        # Sector-specific multipliers
+        sector_multipliers = {
+            "laboratorios": {"energia": 1.5, "agua": 1.3, "co2": 1.4, "pattern": "lab"},
+            "comedores": {"energia": 1.2, "agua": 1.8, "co2": 1.1, "pattern": "food"},
+            "salones": {"energia": 0.9, "agua": 0.7, "co2": 0.85, "pattern": "classroom"},
+            "oficinas": {"energia": 0.8, "agua": 0.6, "co2": 0.75, "pattern": "office"},
+            "auditorios": {"energia": 1.3, "agua": 0.5, "co2": 1.2, "pattern": "auditorium"},
+        }
+        
+        # Get sector multiplier if specified
+        multiplier = {"energia": 1.0, "agua": 1.0, "co2": 1.0, "pattern": "default"}
+        if sector and sector.lower() in sector_multipliers:
+            multiplier = sector_multipliers[sector.lower()]
+        
         # Hourly patterns based on typical university schedule
-        hour_factors = {
+        hour_factors_default = {
             0: 0.3, 1: 0.25, 2: 0.2, 3: 0.2, 4: 0.2, 5: 0.3,
             6: 0.5, 7: 0.8, 8: 1.2, 9: 1.4, 10: 1.5, 11: 1.5,
             12: 1.3, 13: 1.4, 14: 1.5, 15: 1.4, 16: 1.3, 17: 1.1,
             18: 0.9, 19: 0.7, 20: 0.6, 21: 0.5, 22: 0.4, 23: 0.35
         }
         
+        # Sector-specific hourly patterns
+        hour_factors_lab = {
+            0: 0.4, 1: 0.35, 2: 0.3, 3: 0.3, 4: 0.3, 5: 0.4,
+            6: 0.6, 7: 0.9, 8: 1.3, 9: 1.5, 10: 1.6, 11: 1.6,
+            12: 1.4, 13: 1.5, 14: 1.6, 15: 1.5, 16: 1.4, 17: 1.2,
+            18: 1.0, 19: 0.8, 20: 0.7, 21: 0.6, 22: 0.5, 23: 0.45
+        }
+        
+        hour_factors_food = {
+            0: 0.2, 1: 0.15, 2: 0.1, 3: 0.1, 4: 0.1, 5: 0.2,
+            6: 0.8, 7: 1.5, 8: 1.2, 9: 0.8, 10: 0.9, 11: 2.0,
+            12: 2.5, 13: 2.0, 14: 0.8, 15: 0.7, 16: 0.8, 17: 1.0,
+            18: 1.8, 19: 1.5, 20: 1.0, 21: 0.5, 22: 0.3, 23: 0.25
+        }
+        
+        hour_factors_classroom = {
+            0: 0.1, 1: 0.05, 2: 0.05, 3: 0.05, 4: 0.05, 5: 0.1,
+            6: 0.3, 7: 0.7, 8: 1.5, 9: 1.6, 10: 1.5, 11: 1.4,
+            12: 1.0, 13: 1.2, 14: 1.5, 15: 1.4, 16: 1.2, 17: 0.8,
+            18: 0.3, 19: 0.2, 20: 0.15, 21: 0.1, 22: 0.1, 23: 0.1
+        }
+        
+        hour_factors_office = {
+            0: 0.2, 1: 0.15, 2: 0.1, 3: 0.1, 4: 0.1, 5: 0.2,
+            6: 0.4, 7: 0.7, 8: 1.2, 9: 1.4, 10: 1.3, 11: 1.2,
+            12: 1.0, 13: 1.1, 14: 1.2, 15: 1.1, 16: 1.0, 17: 0.7,
+            18: 0.4, 19: 0.3, 20: 0.25, 21: 0.2, 22: 0.2, 23: 0.2
+        }
+        
+        hour_factors_auditorium = {
+            0: 0.3, 1: 0.25, 2: 0.2, 3: 0.2, 4: 0.2, 5: 0.3,
+            6: 0.4, 7: 0.5, 8: 0.8, 9: 1.2, 10: 1.5, 11: 1.3,
+            12: 1.0, 13: 1.2, 14: 1.5, 15: 1.3, 16: 1.0, 17: 0.8,
+            18: 0.6, 19: 0.5, 20: 0.4, 21: 0.35, 22: 0.3, 23: 0.3
+        }
+        
+        # Select appropriate pattern
+        pattern_map = {
+            "lab": hour_factors_lab,
+            "food": hour_factors_food,
+            "classroom": hour_factors_classroom,
+            "office": hour_factors_office,
+            "auditorium": hour_factors_auditorium,
+            "default": hour_factors_default
+        }
+        
+        hour_factors = pattern_map.get(multiplier["pattern"], hour_factors_default)
+        
         patterns = []
         for hour in range(24):
             factor = hour_factors[hour]
             patterns.append({
                 "hora": f"{hour:02d}:00",
-                "energia": round(base_energia * factor, 1),
-                "agua": round(base_agua * factor, 1),
-                "co2": round(base_co2 * factor, 2)
+                "energia": round(base_energia * factor * multiplier["energia"], 1),
+                "agua": round(base_agua * factor * multiplier["agua"], 1),
+                "co2": round(base_co2 * factor * multiplier["co2"], 2)
             })
         
         return patterns

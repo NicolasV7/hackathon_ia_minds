@@ -246,8 +246,11 @@ export async function getSectorBreakdown(sede: string): Promise<SectorBreakdown[
   return apiRequest(`/api/v1/analytics/consumption/sectors/${sede}`, {}, () => []);
 }
 
-export async function getHourlyPatterns(sede: string): Promise<HourlyPattern[]> {
-  return apiRequest(`/api/v1/analytics/patterns/hourly/${sede}`, {}, () => []);
+export async function getHourlyPatterns(sede: string, sector?: string): Promise<HourlyPattern[]> {
+  const params = sector && sector !== 'all' ? `?sector=${sector}` : '';
+  const url = `/api/v1/analytics/patterns/hourly/${sede}${params}`;
+  console.log('[API] Fetching hourly patterns:', url);
+  return apiRequest(url, {}, () => []);
 }
 
 export async function getEfficiencyScore(sede: string): Promise<{ score: number; detalles: Record<string, number> }> {

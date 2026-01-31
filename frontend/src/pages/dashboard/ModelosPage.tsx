@@ -29,16 +29,6 @@ export default function ModelosPage() {
         setPredictions(predsData);
       } catch (error) {
         console.error('Error fetching models data:', error);
-        // Mock data fallback
-        setModels([
-          { nombre: 'XGBoost', mae: 0.042, rmse: 0.068, r2_score: 0.94, tiempo_entrenamiento: '3.2 min', activo: true, version: '2.0.3', framework: 'Scikit-Learn 1.3.2', fecha_entrenamiento: '2025-01-15', datos_entrenamiento: 15240, hiperparametros: { n_estimators: 100, max_depth: 6, learning_rate: 0.1 }, feature_importance: { volumen_corregido: 0.35, hora_del_dia: 0.22, dia_semana: 0.18 } },
-          { nombre: 'Prophet', mae: 0.058, rmse: 0.082, r2_score: 0.89, tiempo_entrenamiento: '1.8 min', activo: false, version: '1.1.0', framework: 'Prophet 1.1.1', fecha_entrenamiento: '2025-01-10', datos_entrenamiento: 15240, hiperparametros: { seasonality_mode: 'multiplicative', changepoint_prior_scale: 0.05 }, feature_importance: {} },
-          { nombre: 'LSTM', mae: 0.051, rmse: 0.075, r2_score: 0.91, tiempo_entrenamiento: '8.5 min', activo: false, version: '1.0.0', framework: 'TensorFlow 2.15', fecha_entrenamiento: '2025-01-12', datos_entrenamiento: 15240, hiperparametros: { units: 64, layers: 2, dropout: 0.2 }, feature_importance: {} },
-        ]);
-        setPredictions({
-          real: [100, 120, 95, 140, 110, 130, 105, 125, 115, 135],
-          predicho: [98, 118, 97, 138, 112, 128, 107, 123, 117, 133],
-        });
       } finally {
         setLoading(false);
       }

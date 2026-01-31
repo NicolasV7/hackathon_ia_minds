@@ -50,36 +50,6 @@ export default function AlertasPage() {
         setConfidence(confData);
       } catch (error) {
         console.error('Error fetching alerts data:', error);
-        // Mock data
-        setAlerts([
-          { id: 'ALT-001', sede: 'Tunja', sector: 'Comedores', fecha: '2025-01-30 03:45', tipo: 'anomalia', severidad: 'critica', estado: 'pendiente', descripcion: 'Consumo 45% superior al baseline detectado fuera de horario (2-5am)', valor_detectado: 4500, valor_esperado: 3100 },
-          { id: 'ALT-002', sede: 'Duitama', sector: 'Laboratorios', fecha: '2025-01-30 10:20', tipo: 'desbalance', severidad: 'alta', estado: 'revisada', descripcion: 'Diferencia significativa entre entrada y salida de energia', valor_detectado: 1200, valor_esperado: 800 },
-          { id: 'ALT-003', sede: 'Sogamoso', sector: 'Oficinas', fecha: '2025-01-29 14:30', tipo: 'anomalia', severidad: 'media', estado: 'pendiente', descripcion: 'Pico de consumo en fin de semana cuando deberia estar cerrado', valor_detectado: 890, valor_esperado: 200 },
-        ]);
-        setSedes([
-          { id: 'tunja', nombre: 'Tunja', estudiantes: 18000, lat: 5.5353, lng: -73.3678, consumo_energia: 45000, consumo_agua: 9500, emisiones_co2: 68 },
-          { id: 'duitama', nombre: 'Duitama', estudiantes: 5500, lat: 5.8267, lng: -73.0333, consumo_energia: 18200, consumo_agua: 3800, emisiones_co2: 27 },
-          { id: 'sogamoso', nombre: 'Sogamoso', estudiantes: 6000, lat: 5.7147, lng: -72.9314, consumo_energia: 15500, consumo_agua: 3200, emisiones_co2: 23 },
-          { id: 'chiquinquira', nombre: 'Chiquinquira', estudiantes: 2000, lat: 5.6167, lng: -73.8167, consumo_energia: 6800, consumo_agua: 1400, emisiones_co2: 10 },
-        ]);
-        setEvolution([
-          { mes: 'Ene', anomalias: 8, desbalances: 4, criticas: 2 },
-          { mes: 'Feb', anomalias: 10, desbalances: 5, criticas: 3 },
-          { mes: 'Mar', anomalias: 12, desbalances: 6, criticas: 2 },
-          { mes: 'Abr', anomalias: 15, desbalances: 8, criticas: 4 },
-          { mes: 'May', anomalias: 11, desbalances: 5, criticas: 2 },
-          { mes: 'Jun', anomalias: 9, desbalances: 4, criticas: 1 },
-          { mes: 'Jul', anomalias: 13, desbalances: 6, criticas: 3 },
-        ]);
-        setShapValues([
-          { feature: 'hora_del_dia', value: 18 },
-          { feature: 'dia_semana', value: 15 },
-          { feature: 'temperatura', value: 12 },
-          { feature: 'ocupacion', value: 8 },
-          { feature: 'historico', value: -5 },
-          { feature: 'estacionalidad', value: -8 },
-        ]);
-        setConfidence({ confianza_prediccion: 94.2, certeza_recomendacion: 87.5, modelo_activo: 'XGBoost v2.0' });
       } finally {
         setLoading(false);
       }

@@ -88,37 +88,6 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      // Fallback mock data
-      setKpis({
-        sedes_monitoreadas: 4,
-        promedio_energia: 21400,
-        promedio_agua: 4200,
-        huella_carbono: 3.98,
-        score_sostenibilidad: 78,
-        alertas_activas: 5,
-        total_emisiones: 125.3,
-        indice_eficiencia: 9.2,
-      });
-      setTrends([
-        { fecha: 'Ene', energia_real: 28000, energia_predicha: 27500, agua_real: 5800, agua_predicha: 5600, co2_real: 42, co2_predicha: 41 },
-        { fecha: 'Feb', energia_real: 30000, energia_predicha: 29800, agua_real: 6200, agua_predicha: 6000, co2_real: 45, co2_predicha: 44 },
-        { fecha: 'Mar', energia_real: 32000, energia_predicha: 31500, agua_real: 6500, agua_predicha: 6300, co2_real: 48, co2_predicha: 47 },
-        { fecha: 'Abr', energia_real: 35000, energia_predicha: 34000, agua_real: 7000, agua_predicha: 6800, co2_real: 52, co2_predicha: 51 },
-        { fecha: 'May', energia_real: 38000, energia_predicha: 37500, agua_real: 7500, agua_predicha: 7300, co2_real: 57, co2_predicha: 56 },
-        { fecha: 'Jun', energia_real: 42000, energia_predicha: 41000, agua_real: 8200, agua_predicha: 8000, co2_real: 63, co2_predicha: 62 },
-        { fecha: 'Jul', energia_real: 45000, energia_predicha: 44500, agua_real: 8800, agua_predicha: 8600, co2_real: 68, co2_predicha: 67 },
-      ]);
-      setAlerts([
-        { id: '1', sede: 'Tunja', sector: 'Comedores', fecha: '2025-01-30 08:30', tipo: 'anomalia', severidad: 'critica', estado: 'pendiente', descripcion: 'Consumo 45% superior al baseline detectado', valor_detectado: 4500, valor_esperado: 3100 },
-        { id: '2', sede: 'Duitama', sector: 'Laboratorios', fecha: '2025-01-30 07:15', tipo: 'desbalance', severidad: 'alta', estado: 'revisada', descripcion: 'Desbalance entre horario laboral y nocturno', valor_detectado: 1200, valor_esperado: 800 },
-        { id: '3', sede: 'Sogamoso', sector: 'Oficinas', fecha: '2025-01-29 14:20', tipo: 'anomalia', severidad: 'media', estado: 'pendiente', descripcion: 'Consumo elevado en fin de semana', valor_detectado: 890, valor_esperado: 200 },
-      ]);
-      setSedes([
-        { id: 'tunja', nombre: 'Tunja', estudiantes: 18000, lat: 5.5353, lng: -73.3678, consumo_energia: 45000, consumo_agua: 9500, emisiones_co2: 68 },
-        { id: 'duitama', nombre: 'Duitama', estudiantes: 5500, lat: 5.8267, lng: -73.0333, consumo_energia: 18200, consumo_agua: 3800, emisiones_co2: 27 },
-        { id: 'sogamoso', nombre: 'Sogamoso', estudiantes: 6000, lat: 5.7147, lng: -72.9314, consumo_energia: 15500, consumo_agua: 3200, emisiones_co2: 23 },
-        { id: 'chiquinquira', nombre: 'Chiquinquira', estudiantes: 2000, lat: 5.6167, lng: -73.8167, consumo_energia: 6800, consumo_agua: 1400, emisiones_co2: 10 },
-      ]);
     } finally {
       setLoading(false);
     }

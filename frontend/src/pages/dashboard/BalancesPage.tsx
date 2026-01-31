@@ -54,40 +54,6 @@ export default function BalancesPage() {
         setSedes(sedesData);
       } catch (error) {
         console.error('Error fetching balances data:', error);
-        // Mock data
-        setSavings([
-          { categoria: 'Consumo actual', valor: 100000, tipo: 'total' },
-          { categoria: 'Reduccion energia', valor: -15000, tipo: 'ahorro' },
-          { categoria: 'Reduccion agua', valor: -8000, tipo: 'ahorro' },
-          { categoria: 'Reduccion CO2', valor: -12000, tipo: 'ahorro' },
-          { categoria: 'Eficiencia operativa', valor: -5000, tipo: 'ahorro' },
-          { categoria: 'Consumo proyectado', valor: 60000, tipo: 'total' },
-        ]);
-        setSustainability({ arboles_salvados: 847, agua_ahorrada: 12500, co2_reducido: 125.3 });
-        setPareto([
-          { causa: 'Climatizacion 24/7', porcentaje: 35, acumulado: 35 },
-          { causa: 'Iluminacion sin uso', porcentaje: 25, acumulado: 60 },
-          { causa: 'Equipos standby', porcentaje: 18, acumulado: 78 },
-          { causa: 'Fugas de agua', porcentaje: 12, acumulado: 90 },
-          { causa: 'Otros', porcentaje: 10, acumulado: 100 },
-        ]);
-        setOpportunities([
-          { area: 'Climatizacion inteligente', potencial_ahorro: 15200, descripcion: 'Optimizar sistemas HVAC con sensores de ocupacion' },
-          { area: 'Sensores de presencia', potencial_ahorro: 8500, descripcion: 'Iluminacion automatica en aulas y pasillos' },
-          { area: 'Equipos eficientes', potencial_ahorro: 12300, descripcion: 'Reemplazo de equipos de laboratorio obsoletos' },
-          { area: 'Paneles solares', potencial_ahorro: 22000, descripcion: 'Instalacion de energia solar en techos' },
-        ]);
-        setRecommendations([
-          { id: '1', sede: 'Tunja', sector: 'Comedores', tipo: 'eficiencia', descripcion: 'Verificar termostatos de refrigeradores. Consumo nocturno 45% superior al esperado.', ahorro_estimado: 120, prioridad: 'alta', estado: 'pendiente' },
-          { id: '2', sede: 'Duitama', sector: 'Laboratorios', tipo: 'mantenimiento', descripcion: 'Revisar sistema de ventilacion. Desbalance detectado entre entrada y salida.', ahorro_estimado: 85, prioridad: 'media', estado: 'pendiente' },
-          { id: '3', sede: 'Sogamoso', sector: 'Oficinas', tipo: 'comportamiento', descripcion: 'Implementar politica de apagado de equipos en fin de semana.', ahorro_estimado: 200, prioridad: 'alta', estado: 'pendiente' },
-        ]);
-        setSedes([
-          { id: 'tunja', nombre: 'Tunja', estudiantes: 18000, lat: 5.5353, lng: -73.3678, consumo_energia: 45000, consumo_agua: 9500, emisiones_co2: 68 },
-          { id: 'duitama', nombre: 'Duitama', estudiantes: 5500, lat: 5.8267, lng: -73.0333, consumo_energia: 18200, consumo_agua: 3800, emisiones_co2: 27 },
-          { id: 'sogamoso', nombre: 'Sogamoso', estudiantes: 6000, lat: 5.7147, lng: -72.9314, consumo_energia: 15500, consumo_agua: 3200, emisiones_co2: 23 },
-          { id: 'chiquinquira', nombre: 'Chiquinquira', estudiantes: 2000, lat: 5.6167, lng: -73.8167, consumo_energia: 6800, consumo_agua: 1400, emisiones_co2: 10 },
-        ]);
       } finally {
         setLoading(false);
       }
