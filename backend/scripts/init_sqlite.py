@@ -52,6 +52,27 @@ async def migrate_predictions_table():
     ]
     
     async with AsyncSessionLocal() as session:
+        # First, drop and recreate predictions table to avoid constraint issues
+        # SQLite doesn't support ALTER TABLE to modify constraints easily
+        try:
+            # Check if old table has data
+            result = await session.execute(text("SELECT COUNT(*) FROM predictions"))
+            old_count = result.scalar()
+            
+            if old_count == 0:
+                # No data, safe to drop and recreate
+                logger.info("Tabla predictions vacía, recreando con nuevo esquema...")
+                await session.execute(text("DROP TABLE IF EXISTS predictions"))
+                await session.commit()
+                logger.info("✅ Tabla predictions eliminada para recreación")
+                return  # Will be created by create_all
+            else:
+                logger.info(f"Tabla predictions tiene {old_count} registros, agregando columnas...")
+        except Exception as e:
+            logger.info(f"Tabla predictions no existe o error: {e}")
+            return  # Will be created by create_all
+        
+    async with AsyncSessionLocal() as session:
         # Check if predictions table exists
         result = await session.execute(text(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='predictions'"
