@@ -20,7 +20,14 @@ import joblib
 from pathlib import Path
 
 from .rules_engine import RulesBasedDetector, DetectedAnomaly
-from .stl_detector import STLAnomalyDetector
+
+# STL detector is optional
+try:
+    from .stl_detector import STLAnomalyDetector
+    STL_AVAILABLE = True
+except ImportError:
+    STLAnomalyDetector = None
+    STL_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -59,10 +66,15 @@ class EnsembleAnomalyDetector:
         # Initialize detectors
         self.rules_detector = RulesBasedDetector()
         
-        try:
-            self.stl_detector = STLAnomalyDetector()
-        except ImportError:
-            logger.warning("STL detector not available (statsmodels not installed)")
+        # STL detector is optional
+        if STL_AVAILABLE:
+            try:
+                self.stl_detector = STLAnomalyDetector()
+            except Exception as e:
+                logger.warning(f"STL detector initialization failed: {e}")
+                self.stl_detector = None
+        else:
+            logger.info("STL detector not available (statsmodels not installed)")
             self.stl_detector = None
         
         # Load Isolation Forest if available

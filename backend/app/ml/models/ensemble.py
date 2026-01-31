@@ -21,7 +21,9 @@ import numpy as np
 import pandas as pd
 import joblib
 
-from .prophet_model import ProphetPredictor, PROPHET_AVAILABLE
+# Prophet is optional - uncomment if installed
+# from .prophet_model import ProphetPredictor, PROPHET_AVAILABLE
+PROPHET_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +64,7 @@ class EnsemblePredictor:
         }
         
         # Models
-        self.prophet_model: Optional[ProphetPredictor] = None
+        self.prophet_model: Optional[Any] = None
         self.xgboost_model: Optional[Any] = None
         
         # Validation metrics
@@ -126,18 +128,10 @@ class EnsemblePredictor:
         if len(train_df) < 168:
             raise ValueError(f"Not enough data: {len(train_df)} rows")
         
-        # 1. Fit Prophet model
+        # 1. Fit Prophet model (disabled - not installed)
         if PROPHET_AVAILABLE:
-            try:
-                self.prophet_model = ProphetPredictor(
-                    sede=self.sede,
-                    model_dir=self.model_dir / "prophet"
-                )
-                self.prophet_model.fit(train_df)
-                logger.info("Prophet model fitted successfully")
-            except Exception as e:
-                logger.warning(f"Failed to fit Prophet: {e}")
-                self.prophet_model = None
+            logger.info("Prophet not available, skipping Prophet model")
+            self.prophet_model = None
         
         # 2. Load/use existing XGBoost model
         self._load_xgboost_model()
@@ -442,16 +436,10 @@ class EnsemblePredictor:
         self.val_metrics = data.get('val_metrics', {})
         self.feature_cols = data.get('feature_cols')
         
-        # Load Prophet model
+        # Load Prophet model (disabled - not installed)
         if PROPHET_AVAILABLE:
-            try:
-                self.prophet_model = ProphetPredictor(
-                    sede=self.sede,
-                    model_dir=self.model_dir / "prophet"
-                )
-                self.prophet_model.load()
-            except FileNotFoundError:
-                logger.warning("Prophet model not found")
+            logger.info("Prophet not available, skipping Prophet model load")
+            self.prophet_model = None
         
         # Load XGBoost
         self._load_xgboost_model()
