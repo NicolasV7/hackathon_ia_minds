@@ -27,8 +27,8 @@ class Settings(BaseSettings):
         """Parse CORS origins from comma-separated string."""
         return [origin.strip() for origin in self.CORS_ORIGINS_STR.split(",") if origin.strip()]
     
-    # ML Models - Nuevos modelos de predicción
-    ML_MODELS_PATH: str = "./newmodels"
+    # ML Models - Nuevos modelos de predicción (ruta absoluta para Docker)
+    ML_MODELS_PATH: str = "/app/newmodels"
     
     # Archivos de modelos
     MODEL_CO2_FILE: str = "modelo_co2.pkl"
