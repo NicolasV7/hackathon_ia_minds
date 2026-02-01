@@ -343,3 +343,42 @@ async def predictions_health_check():
             "status": "unhealthy",
             "message": str(e)
         }
+
+
+@router.get("/debug/load-models")
+async def debug_load_models():
+    """
+    Debug endpoint to manually trigger model loading.
+    Returns detailed error information if loading fails.
+    """
+    import os
+    from pathlib import Path
+    
+    debug_info = {
+        "current_dir": os.getcwd(),
+        "models_path": str(ml_service.models_path),
+        "models_path_exists": ml_service.models_path.exists() if ml_service.models_path else False,
+        "models_path_contents": [],
+        "load_attempt": None,
+        "error": None
+    }
+    
+    try:
+        # List contents of models directory
+        if ml_service.models_path and ml_service.models_path.exists():
+            debug_info["models_path_contents"] = [
+                str(f) for f in ml_service.models_path.iterdir()
+            ]
+        
+        # Try to load models
+        ml_service.load_models()
+        debug_info["load_attempt"] = "success"
+        debug_info["models_loaded"] = ml_service.is_loaded
+        
+    except Exception as e:
+        import traceback
+        debug_info["load_attempt"] = "failed"
+        debug_info["error"] = str(e)
+        debug_info["traceback"] = traceback.format_exc()
+    
+    return debug_info

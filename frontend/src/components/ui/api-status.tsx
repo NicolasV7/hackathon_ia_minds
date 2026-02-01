@@ -13,7 +13,7 @@ export default function ApiStatus({ className = '' }: ApiStatusProps) {
     try {
       setStatus('checking');
       const response = await healthCheck();
-      setStatus(response.status === 'ok' || response.status === 'online' ? 'online' : 'offline');
+      setStatus(response.status === 'ok' || response.status === 'online' || response.status === 'healthy' ? 'online' : 'offline');
     } catch (error) {
       console.warn('API Health check failed:', error);
       setStatus('offline');
@@ -40,8 +40,8 @@ export default function ApiStatus({ className = '' }: ApiStatusProps) {
 
   const getStatusText = () => {
     switch (status) {
-      case 'online': return 'API Online';
-      case 'offline': return 'API Offline (usando datos mock)';
+      case 'online': return 'Sistema Activo';
+      case 'offline': return 'Conectando...';
       case 'checking': return 'Verificando...';
       default: return 'Desconocido';
     }

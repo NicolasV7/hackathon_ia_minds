@@ -2,7 +2,7 @@
 Prediction schemas for CO2 and Energy models.
 Updated to support new ML models from newmodels/ folder.
 """
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 from datetime import datetime
 from typing import Optional, List
 from enum import Enum
@@ -67,15 +67,16 @@ class PredictionResponse(BaseModel):
     
     # Input context
     sede: str
-    timestamp: datetime
+    prediction_timestamp: Optional[datetime] = None
+    timestamp: Optional[datetime] = None  # Alias for API response
     
     # Predictions
-    predicted_co2_kg: float = Field(..., description="Predicted CO2 emissions in kg")
-    predicted_energy_kwh: float = Field(..., description="Predicted total energy consumption in kWh")
+    predicted_co2_kg: Optional[float] = Field(None, description="Predicted CO2 emissions in kg")
+    predicted_energy_kwh: Optional[float] = Field(None, description="Predicted total energy consumption in kWh")
     
     # Confidence scores based on model R² metrics
-    confidence_co2: float = Field(0.893, description="Model confidence for CO2 (R² = 0.893)")
-    confidence_energy: float = Field(0.998, description="Model confidence for Energy (R² = 0.998)")
+    confidence_co2: Optional[float] = Field(0.893, description="Model confidence for CO2 (R² = 0.893)")
+    confidence_energy: Optional[float] = Field(0.998, description="Model confidence for Energy (R² = 0.998)")
     
     # Model metrics (for reference)
     metrics: Optional[dict] = Field(
@@ -98,7 +99,13 @@ class PredictionResponse(BaseModel):
     
     created_at: Optional[datetime] = None
     
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+    
+    @model_validator(mode='after')
+    def set_timestamp_from_prediction_timestamp(self):
+        if self.timestamp is None and self.prediction_timestamp is not None:
+            self.timestamp = self.prediction_timestamp
+        return self
 
 
 class CO2PredictionRequest(BaseModel):

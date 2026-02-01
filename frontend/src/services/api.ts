@@ -1,5 +1,6 @@
 // API Configuration for FastAPI Backend
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Use environment variable or default to production backend URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://77.42.26.173:8000';
 const DEBUG = import.meta.env.VITE_DEBUG === 'true';
 
 // Generic fetch wrapper with error handling
@@ -10,7 +11,7 @@ async function apiRequest<T>(
 ): Promise<T> {
   try {
     const url = `${API_BASE_URL}${endpoint}`;
-    if (DEBUG) console.log(`API Request: ${url}`);
+    console.log(`[API] Request: ${url}`);
     
     const response = await fetch(url, {
       headers: {
@@ -25,12 +26,12 @@ async function apiRequest<T>(
     }
 
     const data = await response.json();
-    if (DEBUG) console.log(`API Response: ${url}`, data);
+    console.log(`[API] Response from ${endpoint}:`, data);
     return data;
   } catch (error) {
-    console.warn(`API Error: ${endpoint}`, error);
+    console.error(`[API] Error for ${endpoint}:`, error);
     if (fallbackData) {
-      console.log(`Using fallback data for ${endpoint}`);
+      console.log(`[API] Using fallback data for ${endpoint}`);
       return fallbackData();
     }
     throw error;
@@ -191,8 +192,9 @@ export async function getAnomalySummary(sede: string): Promise<{ total: number; 
   }));
 }
 
-export async function getUnresolvedAnomalies(): Promise<Anomaly[]> {
-  return apiRequest('/api/v1/anomalies/unresolved', {}, () => getMockAnomalies());
+export async function getUnresolvedAnomalies(sede?: string): Promise<Anomaly[]> {
+  const endpoint = sede ? `/api/v1/anomalies/detected?sede=${sede}` : '/api/v1/anomalies/detected';
+  return apiRequest(endpoint, {}, () => getMockAnomalies());
 }
 
 export async function getAnomaliesByDateRange(startDate: string, endDate: string): Promise<Anomaly[]> {
@@ -218,8 +220,9 @@ export async function getRecommendationsBySede(sede: string): Promise<Recommenda
   return apiRequest(`/api/v1/recommendations/sede/${sede}`, {}, () => []);
 }
 
-export async function getPendingRecommendations(): Promise<Recommendation[]> {
-  return apiRequest('/api/v1/recommendations/pending', {}, () => []);
+export async function getPendingRecommendations(sede?: string): Promise<Recommendation[]> {
+  const endpoint = sede ? `/api/v1/recommendations/sede/${sede}` : '/api/v1/recommendations/pending';
+  return apiRequest(endpoint, {}, () => []);
 }
 
 export async function updateRecommendationStatus(recommendationId: string, estado: string): Promise<Recommendation> {
@@ -243,8 +246,11 @@ export async function getSectorBreakdown(sede: string): Promise<SectorBreakdown[
   return apiRequest(`/api/v1/analytics/consumption/sectors/${sede}`, {}, () => []);
 }
 
-export async function getHourlyPatterns(sede: string): Promise<HourlyPattern[]> {
-  return apiRequest(`/api/v1/analytics/patterns/hourly/${sede}`, {}, () => []);
+export async function getHourlyPatterns(sede: string, sector?: string): Promise<HourlyPattern[]> {
+  const params = sector && sector !== 'all' ? `?sector=${sector}` : '';
+  const url = `/api/v1/analytics/patterns/hourly/${sede}${params}`;
+  console.log('[API] Fetching hourly patterns:', url);
+  return apiRequest(url, {}, () => []);
 }
 
 export async function getEfficiencyScore(sede: string): Promise<{ score: number; detalles: Record<string, number> }> {
@@ -267,33 +273,39 @@ export async function getCorrelationMatrix(sede: string): Promise<{ variables: s
 }
 
 // GET /api/v1/analytics/academic-periods - Get consumption by academic period
-export async function getAcademicPeriodConsumption(): Promise<{ periodo: string; energia: number; agua: number; co2: number }[]> {
-  return apiRequest('/api/v1/analytics/academic-periods', {}, () => getMockAcademicPeriods());
+export async function getAcademicPeriodConsumption(sede?: string): Promise<{ periodo: string; energia: number; agua: number; co2: number }[]> {
+  const endpoint = sede ? `/api/v1/analytics/academic-periods?sede=${sede}` : '/api/v1/analytics/academic-periods';
+  return apiRequest(endpoint, {}, () => getMockAcademicPeriods());
 }
 
 // GET /api/v1/optimization/opportunities - Get optimization opportunities
-export async function getOptimizationOpportunities(): Promise<{ area: string; potencial_ahorro: number; descripcion: string }[]> {
-  return apiRequest('/api/v1/optimization/opportunities', {}, () => getMockOpportunities());
+export async function getOptimizationOpportunities(sede?: string): Promise<{ area: string; potencial_ahorro: number; descripcion: string }[]> {
+  const endpoint = sede ? `/api/v1/optimization/opportunities?sede=${sede}` : '/api/v1/optimization/opportunities';
+  return apiRequest(endpoint, {}, () => getMockOpportunities());
 }
 
 // GET /api/v1/optimization/savings-projection - Get savings projection (waterfall)
-export async function getSavingsProjection(): Promise<{ categoria: string; valor: number; tipo: 'ahorro' | 'total' }[]> {
-  return apiRequest('/api/v1/optimization/savings-projection', {}, () => getMockSavingsProjection());
+export async function getSavingsProjection(sede?: string): Promise<{ categoria: string; valor: number; tipo: 'ahorro' | 'total' }[]> {
+  const endpoint = sede ? `/api/v1/optimization/savings-projection?sede=${sede}` : '/api/v1/optimization/savings-projection';
+  return apiRequest(endpoint, {}, () => getMockSavingsProjection());
 }
 
 // GET /api/v1/optimization/sustainability - Get sustainability contribution
-export async function getSustainabilityContribution(): Promise<{ arboles_salvados: number; agua_ahorrada: number; co2_reducido: number }> {
-  return apiRequest('/api/v1/optimization/sustainability', {}, () => getMockSustainability());
+export async function getSustainabilityContribution(sede?: string): Promise<{ arboles_salvados: number; agua_ahorrada: number; co2_reducido: number }> {
+  const endpoint = sede ? `/api/v1/optimization/sustainability?sede=${sede}` : '/api/v1/optimization/sustainability';
+  return apiRequest(endpoint, {}, () => getMockSustainability());
 }
 
 // GET /api/v1/optimization/pareto - Get pareto analysis
-export async function getParetoAnalysis(): Promise<{ causa: string; porcentaje: number; acumulado: number }[]> {
-  return apiRequest('/api/v1/optimization/pareto', {}, () => getMockPareto());
+export async function getParetoAnalysis(sede?: string): Promise<{ causa: string; porcentaje: number; acumulado: number }[]> {
+  const endpoint = sede ? `/api/v1/optimization/pareto?sede=${sede}` : '/api/v1/optimization/pareto';
+  return apiRequest(endpoint, {}, () => getMockPareto());
 }
 
 // GET /api/v1/alerts/evolution - Get alert evolution over time
-export async function getAlertEvolution(): Promise<{ mes: string; anomalias: number; desbalances: number; criticas: number }[]> {
-  return apiRequest('/api/v1/alerts/evolution', {}, () => getMockAlertEvolution());
+export async function getAlertEvolution(sede?: string): Promise<{ mes: string; anomalias: number; desbalances: number; criticas: number }[]> {
+  const endpoint = sede ? `/api/v1/alerts/evolution?sede=${sede}` : '/api/v1/alerts/evolution';
+  return apiRequest(endpoint, {}, () => getMockAlertEvolution());
 }
 
 // GET /api/v1/explainability/shap/{variable} - Get SHAP values
@@ -312,6 +324,39 @@ export async function sendChatMessage(message: string): Promise<{ response: stri
     method: 'POST',
     body: JSON.stringify({ message }),
   }, () => ({ response: 'Lo siento, no puedo procesar tu solicitud en este momento. Por favor, intenta de nuevo.' }));
+}
+
+// POST /api/v1/recommendations/ai-generate - Generate AI recommendations
+export async function generateAIRecommendations(
+  sede: string,
+  energia: number,
+  agua: number,
+  co2: number,
+  anomalias: number
+): Promise<{ recomendaciones: Recommendation[] }> {
+  const params = new URLSearchParams({
+    sede,
+    energia: energia.toString(),
+    agua: agua.toString(),
+    co2: co2.toString(),
+    anomalias: anomalias.toString(),
+  });
+  return apiRequest(`/api/v1/recommendations/ai-generate?${params}`, {
+    method: 'POST',
+  }, () => ({
+    recomendaciones: [
+      {
+        id: 'AI-1',
+        sede,
+        sector: 'General',
+        tipo: 'ia',
+        descripcion: 'Mantener monitoreo continuo del consumo energético. Los indicadores actuales son estables.',
+        ahorro_estimado: 100,
+        prioridad: 'media',
+        estado: 'pendiente',
+      },
+    ],
+  }));
 }
 
 // GET /api/v1/sedes - Get all sedes info

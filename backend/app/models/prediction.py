@@ -20,8 +20,12 @@ class Prediction(Base):
     # When was the prediction made
     prediction_timestamp = Column(DateTime(timezone=True), default=datetime.utcnow, index=True)
     
+    # Target timestamp (legacy field from old model, kept for backward compatibility)
+    target_timestamp = Column(DateTime(timezone=True), nullable=True)
+    
     # Location
     sede = Column(String(50), nullable=False, index=True)
+    sector = Column(String(50), nullable=True)  # Legacy field
     
     # Prediction results - CO2
     predicted_co2_kg = Column(Float, nullable=True)

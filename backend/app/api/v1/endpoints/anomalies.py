@@ -2,7 +2,8 @@
 Anomaly detection endpoints.
 """
 
-from typing import List, Optional
+import logging
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +17,7 @@ from app.schemas.anomaly import (
     AnomalyStatusUpdate
 )
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/anomalies", tags=["anomalies"])
 anomaly_service = AnomalyService()
 
@@ -194,4 +196,58 @@ async def update_anomaly_status(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/detected", response_model=List[AnomalyResponse])
+async def get_detected_anomalies(
+    sede: Optional[str] = Query(None, description="Optional sede filter"),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get detected anomalies using Isolation Forest model.
+    Runs real-time anomaly detection on consumption data.
+    
+    Args:
+        sede: Optional sede filter
+        db: Database session
+        
+    Returns:
+        List of detected AnomalyResponse objects
+    """
+    try:
+        # First try to get existing anomalies from database
+        anomalies = await anomaly_service.get_unresolved_anomalies(db=db, sede=sede)
+        
+        # If no anomalies found, run detection on real data
+        if not anomalies:
+            logger.info("No anomalies in DB, running Isolation Forest detection on real data")
+            
+            # Run detection for each sede or specific sede
+            sedes_to_check = [sede] if sede else ["tunja", "duitama", "sogamoso", "chiquinquira"]
+            
+            for check_sede in sedes_to_check:
+                try:
+                    # Detect anomalies using Isolation Forest
+                    detected = await anomaly_service.detect_anomalies(
+                        db=db,
+                        sede=check_sede,
+                        start_date=datetime.utcnow() - timedelta(days=30),
+                        end_date=datetime.utcnow()
+                    )
+                    
+                    if detected:
+                        logger.info(f"Detected {len(detected)} anomalies for {check_sede}")
+                        
+                except Exception as detect_error:
+                    logger.error(f"Error detecting anomalies for {check_sede}: {detect_error}")
+                    continue
+            
+            # Get newly detected anomalies
+            anomalies = await anomaly_service.get_unresolved_anomalies(db=db, sede=sede)
+        
+        return anomalies
+        
+    except Exception as e:
+        logger.error(f"Error getting detected anomalies: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { TrendingDown, TrendingUp, ArrowRight, TreeDeciduous, Droplets, Cloud, Lightbulb, Target } from 'lucide-react';
+import { TrendingDown, TreeDeciduous, Droplets, Cloud, Lightbulb, Target, Scale } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/loading-screen';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import {
   getSavingsProjection,
   getSustainabilityContribution,
@@ -11,6 +12,8 @@ import {
   getOptimizationOpportunities,
   getPendingRecommendations,
   getSedesInfo,
+  generateAIRecommendations,
+  getDashboardKPIs,
   type Recommendation,
   type SedeInfo,
 } from '@/services/api';
@@ -29,16 +32,18 @@ export default function BalancesPage() {
   const [sedes, setSedes] = useState<SedeInfo[]>([]);
   const [selectedSede, setSelectedSede] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
       try {
+        const sedeParam = selectedSede === 'all' ? undefined : selectedSede;
         const [savingsData, sustData, paretoData, oppData, recData, sedesData] = await Promise.all([
-          getSavingsProjection(),
-          getSustainabilityContribution(),
-          getParetoAnalysis(),
-          getOptimizationOpportunities(),
-          getPendingRecommendations(),
+          getSavingsProjection(sedeParam),
+          getSustainabilityContribution(sedeParam),
+          getParetoAnalysis(sedeParam),
+          getOptimizationOpportunities(sedeParam),
+          getPendingRecommendations(sedeParam),
           getSedesInfo(),
         ]);
         setSavings(savingsData);
@@ -49,40 +54,6 @@ export default function BalancesPage() {
         setSedes(sedesData);
       } catch (error) {
         console.error('Error fetching balances data:', error);
-        // Mock data
-        setSavings([
-          { categoria: 'Consumo actual', valor: 100000, tipo: 'total' },
-          { categoria: 'Reduccion energia', valor: -15000, tipo: 'ahorro' },
-          { categoria: 'Reduccion agua', valor: -8000, tipo: 'ahorro' },
-          { categoria: 'Reduccion CO2', valor: -12000, tipo: 'ahorro' },
-          { categoria: 'Eficiencia operativa', valor: -5000, tipo: 'ahorro' },
-          { categoria: 'Consumo proyectado', valor: 60000, tipo: 'total' },
-        ]);
-        setSustainability({ arboles_salvados: 847, agua_ahorrada: 12500, co2_reducido: 125.3 });
-        setPareto([
-          { causa: 'Climatizacion 24/7', porcentaje: 35, acumulado: 35 },
-          { causa: 'Iluminacion sin uso', porcentaje: 25, acumulado: 60 },
-          { causa: 'Equipos standby', porcentaje: 18, acumulado: 78 },
-          { causa: 'Fugas de agua', porcentaje: 12, acumulado: 90 },
-          { causa: 'Otros', porcentaje: 10, acumulado: 100 },
-        ]);
-        setOpportunities([
-          { area: 'Climatizacion inteligente', potencial_ahorro: 15200, descripcion: 'Optimizar sistemas HVAC con sensores de ocupacion' },
-          { area: 'Sensores de presencia', potencial_ahorro: 8500, descripcion: 'Iluminacion automatica en aulas y pasillos' },
-          { area: 'Equipos eficientes', potencial_ahorro: 12300, descripcion: 'Reemplazo de equipos de laboratorio obsoletos' },
-          { area: 'Paneles solares', potencial_ahorro: 22000, descripcion: 'Instalacion de energia solar en techos' },
-        ]);
-        setRecommendations([
-          { id: '1', sede: 'Tunja', sector: 'Comedores', tipo: 'eficiencia', descripcion: 'Verificar termostatos de refrigeradores. Consumo nocturno 45% superior al esperado.', ahorro_estimado: 120, prioridad: 'alta', estado: 'pendiente' },
-          { id: '2', sede: 'Duitama', sector: 'Laboratorios', tipo: 'mantenimiento', descripcion: 'Revisar sistema de ventilacion. Desbalance detectado entre entrada y salida.', ahorro_estimado: 85, prioridad: 'media', estado: 'pendiente' },
-          { id: '3', sede: 'Sogamoso', sector: 'Oficinas', tipo: 'comportamiento', descripcion: 'Implementar politica de apagado de equipos en fin de semana.', ahorro_estimado: 200, prioridad: 'alta', estado: 'pendiente' },
-        ]);
-        setSedes([
-          { id: 'tunja', nombre: 'Tunja', estudiantes: 18000, lat: 5.5353, lng: -73.3678, consumo_energia: 45000, consumo_agua: 9500, emisiones_co2: 68 },
-          { id: 'duitama', nombre: 'Duitama', estudiantes: 5500, lat: 5.8267, lng: -73.0333, consumo_energia: 18200, consumo_agua: 3800, emisiones_co2: 27 },
-          { id: 'sogamoso', nombre: 'Sogamoso', estudiantes: 6000, lat: 5.7147, lng: -72.9314, consumo_energia: 15500, consumo_agua: 3200, emisiones_co2: 23 },
-          { id: 'chiquinquira', nombre: 'Chiquinquira', estudiantes: 2000, lat: 5.6167, lng: -73.8167, consumo_energia: 6800, consumo_agua: 1400, emisiones_co2: 10 },
-        ]);
       } finally {
         setLoading(false);
       }
@@ -108,10 +79,37 @@ export default function BalancesPage() {
     }
   };
 
+  // Generate AI recommendations based on current data
+  const handleGenerateAIRecommendations = async () => {
+    try {
+      setAiLoading(true);
+      const sedeData = sedes.find(s => s.id === selectedSede) || sedes[0];
+      if (!sedeData) return;
+
+      const aiResponse = await generateAIRecommendations(
+        selectedSede === 'all' ? 'Todas' : sedeData.nombre,
+        sedeData.consumo_energia,
+        sedeData.consumo_agua,
+        sedeData.emisiones_co2,
+        5 // Default anomalies count
+      );
+      
+      setRecommendations(aiResponse.recomendaciones);
+    } catch (error) {
+      console.error('Error generating AI recommendations:', error);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Cargando balances...</div>
+      <div className="p-6">
+        <LoadingScreen 
+          variant="balances"
+          title="Cargando Balances"
+          description="Calculando proyecciones de ahorro y sostenibilidad..."
+        />
       </div>
     );
   }
@@ -119,27 +117,20 @@ export default function BalancesPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Target className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            <Scale className="w-6 h-6 text-emerald-400" />
             Balances Energeticos
           </h1>
-          <p className="text-muted-foreground">Comparativo entrada/salida, perdidas y evolucion del ahorro por sede</p>
+          <p className="text-sm text-muted-foreground mt-1">Proyecciones de ahorro y contribucion a sostenibilidad</p>
         </div>
-        <div className="flex gap-3">
-          <Select value={selectedSede} onValueChange={setSelectedSede}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Seleccionar Sede" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las sedes</SelectItem>
-              {sedes.map((sede) => (
-                <SelectItem key={sede.id} value={sede.id}>{sede.nombre}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <SedeSelector
+          sedes={sedes}
+          selectedSede={selectedSede}
+          onSedeChange={setSelectedSede}
+          showAllOption={true}
+        />
       </div>
 
       {/* Opportunities and Areas */}
@@ -328,14 +319,33 @@ export default function BalancesPage() {
       {/* LLM Recommendations */}
       <Card className="chart-container">
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Lightbulb className="w-5 h-5 text-primary" />
-            Recomendaciones Personalizadas (IA)
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">Acciones generadas por el motor de recomendaciones LLM</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Lightbulb className="w-5 h-5 text-primary" />
+                Recomendaciones Personalizadas (IA)
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">Acciones generadas por el motor de recomendaciones LLM basadas en datos reales</p>
+            </div>
+            <Button 
+              onClick={handleGenerateAIRecommendations} 
+              disabled={aiLoading}
+              className="flex items-center gap-2"
+            >
+              <Lightbulb className="w-4 h-4" />
+              {aiLoading ? 'Generando...' : 'Generar con IA'}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
+            {recommendations.length === 0 && !aiLoading && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Lightbulb className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>Haz clic en "Generar con IA" para obtener recomendaciones personalizadas</p>
+                <p className="text-sm mt-2">OpenAI analizará los datos de consumo de {selectedSede === 'all' ? 'todas las sedes' : 'la sede seleccionada'}</p>
+              </div>
+            )}
             {recommendations.map((rec, index) => (
               <motion.div
                 key={rec.id}

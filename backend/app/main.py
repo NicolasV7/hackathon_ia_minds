@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+from datetime import datetime
 import logging
 
 from app.core.config import get_settings
@@ -86,10 +87,14 @@ app.add_middleware(
 @app.get("/health", tags=["health"])
 async def health_check():
     """Health check endpoint for monitoring."""
+    from app.ml.inference import ml_service
+    
     return JSONResponse({
         "status": "healthy",
         "version": settings.VERSION,
-        "app": settings.APP_NAME
+        "app": settings.APP_NAME,
+        "models_loaded": ml_service.is_loaded,
+        "timestamp": datetime.utcnow().isoformat()
     })
 
 

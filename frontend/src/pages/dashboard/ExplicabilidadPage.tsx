@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Brain, HelpCircle, BarChart3, CheckCircle } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/loading-screen';
 import {
   getShapValues,
   getModelConfidence,
@@ -34,32 +35,6 @@ export default function ExplicabilidadPage() {
         setModels(modelsData);
       } catch (error) {
         console.error('Error fetching explainability data:', error);
-        // Mock data
-        setShapValues([
-          { feature: 'hora_del_dia', value: 18 },
-          { feature: 'dia_semana', value: 15 },
-          { feature: 'temperatura', value: 12 },
-          { feature: 'ocupacion', value: 8 },
-          { feature: 'historico', value: -5 },
-          { feature: 'estacionalidad', value: -8 },
-        ]);
-        setConfidence({ confianza_prediccion: 94.2, certeza_recomendacion: 87.5, modelo_activo: 'XGBoost v2.0' });
-        setModels([
-          {
-            nombre: 'XGBoost',
-            mae: 0.042,
-            rmse: 0.068,
-            r2_score: 0.94,
-            tiempo_entrenamiento: '3.2 min',
-            activo: true,
-            version: '2.0.3',
-            framework: 'Scikit-Learn 1.3.2',
-            fecha_entrenamiento: '2025-01-15',
-            datos_entrenamiento: 15240,
-            hiperparametros: { n_estimators: 100, max_depth: 6 },
-            feature_importance: { volumen_corregido: 0.35, hora_del_dia: 0.22 },
-          },
-        ]);
       } finally {
         setLoading(false);
       }
@@ -71,8 +46,12 @@ export default function ExplicabilidadPage() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Cargando explicabilidad...</div>
+      <div className="p-6">
+        <LoadingScreen 
+          variant="models"
+          title="Cargando Explicabilidad"
+          description="Calculando SHAP values e importancia de features..."
+        />
       </div>
     );
   }
@@ -80,14 +59,12 @@ export default function ExplicabilidadPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Brain className="w-6 h-6 text-primary" />
-            Explicabilidad del Modelo
-          </h1>
-          <p className="text-muted-foreground">Transparencia y auditabilidad de las predicciones con SHAP values</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+          <Brain className="w-6 h-6 text-purple-400" />
+          Explicabilidad del Modelo
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">Transparencia y auditabilidad de predicciones con SHAP values</p>
       </div>
 
       {/* Variable Selector */}

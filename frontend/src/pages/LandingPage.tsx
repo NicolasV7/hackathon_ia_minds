@@ -1,281 +1,418 @@
 import { Link } from 'react-router-dom';
-import { Building2, Users, Layers, Database, ArrowRight, Zap, MapPin } from 'lucide-react';
+import { ArrowRight, Activity, Shield, BarChart3, Cpu, ChevronRight, LogIn, Linkedin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MapaSedes } from '@/components/landing/MapaSedes';
+import { Logo } from '@/components/ui/logo';
 
-const stats = [
-  { icon: Building2, value: '4', label: 'Sedes', color: 'text-primary' },
-  { icon: Users, value: '31.5K+', label: 'Estudiantes', color: 'text-primary' },
-  { icon: Layers, value: '5', label: 'Sectores', color: 'text-primary' },
-  { icon: Database, value: '2018-2025', label: 'Datos Historicos', color: 'text-primary' },
+// Team members data
+const teamMembers = [
+  {
+    name: 'Nicolas De La Pava',
+    initials: 'ND',
+    linkedin: 'nicolasdlp',
+    color: 'from-amber-500 to-orange-600',
+  },
+  {
+    name: 'Sebastian Dosman',
+    initials: 'SD',
+    linkedin: 'sebastiandosman',
+    color: 'from-sky-500 to-blue-600',
+  },
+  {
+    name: 'Lilian Maradiago',
+    initials: 'LM',
+    linkedin: 'lilian-estefania-maradiago-correa-40b423244',
+    color: 'from-purple-500 to-violet-600',
+  },
+  {
+    name: 'Valeria Rudas',
+    initials: 'VR',
+    linkedin: 'valeria-rudas-ruiz-941a0715b',
+    color: 'from-emerald-500 to-teal-600',
+  },
 ];
 
-const features = [
+// Metrics data with tabular numbers for alignment
+const metrics = [
+  { value: '4', unit: 'sedes', description: 'Campus monitoreados en Boyaca' },
+  { value: '31.5K', unit: 'estudiantes', description: 'Poblacion universitaria activa' },
+  { value: '85.5K', unit: 'kWh/mes', description: 'Consumo energetico total' },
+  { value: '129', unit: 'ton CO2', description: 'Emisiones mensuales rastreadas' },
+];
+
+// Capabilities with clear value propositions
+const capabilities = [
   {
-    title: 'Prediccion Inteligente',
-    description: 'Modelos de ML que predicen consumo energetico, agua y emisiones CO2 con alta precision.',
-    icon: '🎯',
+    icon: BarChart3,
+    title: 'Prediccion de Consumo',
+    description: 'Modelos de machine learning entrenados con datos historicos. Precision del 99.8% en prediccion de energia.',
+    metric: '99.8%',
+    metricLabel: 'precision',
   },
   {
+    icon: Activity,
     title: 'Deteccion de Anomalias',
-    description: 'Identificacion automatica de desperdicios y uso ineficiente con Isolation Forest.',
-    icon: '🔍',
+    description: 'Isolation Forest identifica patrones de consumo irregular en tiempo real. Reduccion del 23% en desperdicios detectados.',
+    metric: '-23%',
+    metricLabel: 'desperdicios',
   },
   {
-    title: 'Recomendaciones IA',
-    description: 'Motor de recomendaciones personalizadas con LLM para acciones concretas.',
-    icon: '💡',
+    icon: Cpu,
+    title: 'Optimizacion Inteligente',
+    description: 'Recomendaciones generadas por IA con estimaciones de ahorro concretas. ROI promedio de 18 meses por implementacion.',
+    metric: '18',
+    metricLabel: 'meses ROI',
   },
   {
-    title: 'Explicabilidad',
-    description: 'Transparencia total con SHAP values y metricas de confianza del modelo.',
-    icon: '📊',
+    icon: Shield,
+    title: 'Transparencia Total',
+    description: 'SHAP values y metricas de confianza en cada prediccion. Decisiones auditables y explicables para stakeholders.',
+    metric: '100%',
+    metricLabel: 'explicable',
   },
 ];
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
+      {/* Skip to main content link for accessibility */}
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        Saltar al contenido principal
+      </a>
+
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 glass-effect">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <Zap className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold">UPTC Energy</span>
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60">
+        <nav className="container mx-auto px-6 h-16 flex items-center justify-between" aria-label="Navegacion principal">
+          <Link 
+            to="/" 
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md"
+            aria-label="UPTC EcoEnergy - Inicio"
+          >
+            <Logo size="sm" />
           </Link>
           
-          <nav className="hidden md:flex items-center gap-8">
-            <a href="#caracteristicas" className="text-muted-foreground hover:text-foreground transition-colors">
-              Caracteristicas
+          <div className="hidden md:flex items-center gap-1">
+            <a 
+              href="#capacidades" 
+              className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Capacidades
             </a>
-            <a href="#estadisticas" className="text-muted-foreground hover:text-foreground transition-colors">
-              Estadisticas
+            <a 
+              href="#mapa" 
+              className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Cobertura
             </a>
+            <div className="w-px h-5 bg-border mx-2" aria-hidden="true" />
             <Link to="/dashboard">
-              <Button variant="default" className="gap-2">
-                Ir al Dashboard
-                <ArrowRight className="w-4 h-4" />
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="gap-2 font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <LogIn className="w-4 h-4" aria-hidden="true" />
+                Ingresar
               </Button>
             </Link>
-          </nav>
-        </div>
+          </div>
+
+          {/* Mobile menu button */}
+          <Link to="/dashboard" className="md:hidden">
+            <Button variant="default" size="sm" className="gap-2 focus-visible:ring-2 focus-visible:ring-ring">
+              <LogIn className="w-4 h-4" aria-hidden="true" />
+              Ingresar
+            </Button>
+          </Link>
+        </nav>
       </header>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="container mx-auto text-center">
-          <div>
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-              <Zap className="w-4 h-4" />
-              Plataforma de IA para Sostenibilidad
-            </span>
+      <main id="main-content">
+        {/* Hero Section */}
+        <section className="relative pt-32 pb-24 px-6 lg:pt-40 lg:pb-32 overflow-hidden">
+          {/* Background with gradient and pattern */}
+          <div className="absolute inset-0 -z-10">
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
             
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-              Optimiza el{' '}
-              <span className="gradient-text">consumo energetico</span>
-              <br />de la UPTC
-            </h1>
+            {/* Grid pattern */}
+            <div 
+              className="absolute inset-0 opacity-[0.03]"
+              style={{
+                backgroundImage: `
+                  linear-gradient(to right, hsl(var(--foreground)) 1px, transparent 1px),
+                  linear-gradient(to bottom, hsl(var(--foreground)) 1px, transparent 1px)
+                `,
+                backgroundSize: '60px 60px',
+              }}
+            />
             
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
-              Plataforma inteligente que predice, optimiza y recomienda acciones 
-              para reducir el consumo energetico y la huella de carbono en las 4 
-              sedes de Boyaca.
-            </p>
+            {/* Radial glow */}
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-primary/10 rounded-full blur-[120px] opacity-50" />
             
-            <Link to="/dashboard">
-              <Button size="lg" className="gap-2 text-lg px-8 py-6">
-                Explorar Dashboard
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-            </Link>
+            {/* Abstract shapes */}
+            <div className="absolute top-32 right-[10%] w-72 h-72 border border-primary/10 rounded-full opacity-40" />
+            <div className="absolute top-48 right-[15%] w-48 h-48 border border-primary/20 rounded-full opacity-30" />
+            <div className="absolute bottom-32 left-[5%] w-96 h-96 border border-primary/5 rounded-full opacity-30" />
+            
+            {/* Energy visualization lines */}
+            <svg className="absolute top-20 left-0 w-full h-full opacity-10 pointer-events-none" aria-hidden="true">
+              <defs>
+                <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+                  <stop offset="50%" stopColor="hsl(var(--primary))" stopOpacity="1" />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path 
+                d="M0,200 Q400,100 800,200 T1600,200" 
+                stroke="url(#lineGradient)" 
+                strokeWidth="1" 
+                fill="none"
+                className="animate-pulse"
+              />
+              <path 
+                d="M0,300 Q400,400 800,300 T1600,300" 
+                stroke="url(#lineGradient)" 
+                strokeWidth="1" 
+                fill="none"
+                className="animate-pulse"
+                style={{ animationDelay: '1s' }}
+              />
+            </svg>
           </div>
-        </div>
-      </section>
 
-      {/* Stats Section */}
-      <section id="estadisticas" className="py-12 px-6">
-        <div className="container mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {stats.map((stat, index) => (
-              <div
-                key={index}
-                className="stat-card text-center"
-              >
-                <stat.icon className={`w-6 h-6 ${stat.color} mx-auto mb-3`} />
-                <div className="text-2xl md:text-3xl font-bold mb-1">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* GeoVisor Section */}
-      <section className="py-16 px-6">
-        <div className="container mx-auto">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <MapPin className="w-6 h-6 text-primary" />
-              <h2 className="text-3xl font-bold">Ubicacion de las Sedes UPTC</h2>
-            </div>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              Visualiza en tiempo real el consumo energetico de las 4 sedes de la UPTC en Boyaca
-            </p>
-          </div>
-          
-          <div>
-            <div className="w-full h-96 bg-gray-800 rounded-xl overflow-hidden relative border border-gray-700">
+          <div className="container mx-auto max-w-5xl relative">
+            <div className="text-center">
+              {/* Eyebrow */}
+              <p className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-secondary/50 text-xs font-medium text-muted-foreground mb-8">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
+                Sistema operativo 24/7
+              </p>
               
-              {/* Título del mapa */}
-              <div className="absolute top-4 left-4 bg-black/80 backdrop-blur border border-gray-600 rounded-lg px-3 py-2 z-10">
-                <div className="text-sm font-semibold text-white">Sedes UPTC - Boyacá</div>
-              </div>
+              {/* Headline */}
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-balance">
+                Gestion energetica
+                <br />
+                <span className="bg-gradient-to-r from-primary via-amber-400 to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient_3s_linear_infinite]">
+                  basada en datos
+                </span>
+              </h1>
               
-              {/* Puntos interactivos de las sedes */}
-              <div className="absolute inset-0">
-                {/* Sede Tunja - Centro del mapa */}
-                <div className="absolute" style={{ top: '45%', left: '52%', transform: 'translate(-50%, -50%)' }}>
-                  <div className="group relative cursor-pointer z-20">
-                    <div className="w-6 h-6 bg-red-500 border-2 border-white rounded-full shadow-lg hover:scale-125 transition-all duration-200 animate-pulse">
-                    </div>
-                    <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 bg-black/90 backdrop-blur border border-gray-600 rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 min-w-max shadow-xl z-30">
-                      <div className="text-sm font-semibold text-white">🔴 Tunja (Principal)</div>
-                      <div className="text-xs text-gray-300 mt-1">18,000 estudiantes</div>
-                      <div className="text-xs text-gray-300">⚡ 45,000 kWh/mes</div>
-                      <div className="text-xs text-gray-300">💧 9,500 m³/mes</div>
-                      <div className="text-xs text-red-400 font-medium mt-1">Alto consumo</div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Sede Duitama - Norte */}
-                <div className="absolute" style={{ top: '25%', left: '45%', transform: 'translate(-50%, -50%)' }}>
-                  <div className="group relative cursor-pointer z-20">
-                    <div className="w-5 h-5 bg-orange-500 border-2 border-white rounded-full shadow-lg hover:scale-125 transition-all duration-200 animate-pulse">
-                    </div>
-                    <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 bg-black/90 backdrop-blur border border-gray-600 rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 min-w-max shadow-xl z-30">
-                      <div className="text-sm font-semibold text-white">🟠 Duitama</div>
-                      <div className="text-xs text-gray-300 mt-1">5,500 estudiantes</div>
-                      <div className="text-xs text-gray-300">⚡ 18,200 kWh/mes</div>
-                      <div className="text-xs text-gray-300">💧 3,800 m³/mes</div>
-                      <div className="text-xs text-orange-400 font-medium mt-1">Medio-alto</div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Sede Sogamoso - Noreste */}
-                <div className="absolute" style={{ top: '30%', left: '65%', transform: 'translate(-50%, -50%)' }}>
-                  <div className="group relative cursor-pointer z-20">
-                    <div className="w-5 h-5 bg-yellow-500 border-2 border-white rounded-full shadow-lg hover:scale-125 transition-all duration-200 animate-pulse">
-                    </div>
-                    <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 bg-black/90 backdrop-blur border border-gray-600 rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 min-w-max shadow-xl z-30">
-                      <div className="text-sm font-semibold text-white">🟡 Sogamoso</div>
-                      <div className="text-xs text-gray-300 mt-1">6,000 estudiantes</div>
-                      <div className="text-xs text-gray-300">⚡ 15,500 kWh/mes</div>
-                      <div className="text-xs text-gray-300">💧 3,200 m³/mes</div>
-                      <div className="text-xs text-yellow-400 font-medium mt-1">Consumo medio</div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Sede Chiquinquirá - Oeste */}
-                <div className="absolute" style={{ top: '60%', left: '25%', transform: 'translate(-50%, -50%)' }}>
-                  <div className="group relative cursor-pointer z-20">
-                    <div className="w-4 h-4 bg-green-500 border-2 border-white rounded-full shadow-lg hover:scale-125 transition-all duration-200 animate-pulse">
-                    </div>
-                    <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 bg-black/90 backdrop-blur border border-gray-600 rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 min-w-max shadow-xl z-30">
-                      <div className="text-sm font-semibold text-white">🟢 Chiquinquirá</div>
-                      <div className="text-xs text-gray-300 mt-1">2,000 estudiantes</div>
-                      <div className="text-xs text-gray-300">⚡ 6,800 kWh/mes</div>
-                      <div className="text-xs text-gray-300">💧 1,400 m³/mes</div>
-                      <div className="text-xs text-green-400 font-medium mt-1">Bajo consumo</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Subheadline */}
+              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 text-pretty leading-relaxed">
+                Plataforma de monitoreo y optimizacion para las 4 sedes de la UPTC. 
+                Reduce consumo, minimiza emisiones y toma decisiones informadas con 
+                modelos de machine learning.
+              </p>
               
-              {/* Leyenda */}
-              <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur border border-gray-600 rounded-lg px-3 py-2 z-10">
-                <div className="text-sm font-semibold text-white mb-2">Consumo energético</div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-xs text-gray-300">
-                    <div className="w-3 h-3 bg-red-500 rounded-full border border-white"></div>
-                    <span>Alto (+40k kWh/mes)</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-300">
-                    <div className="w-3 h-3 bg-orange-500 rounded-full border border-white"></div>
-                    <span>Medio-alto (15-40k)</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-300">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full border border-white"></div>
-                    <span>Medio (10-15k)</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-300">
-                    <div className="w-3 h-3 bg-green-500 rounded-full border border-white"></div>
-                    <span>Bajo (-10k kWh/mes)</span>
-                  </div>
-                </div>
+              {/* CTA Group */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Link to="/dashboard">
+                  <Button 
+                    size="lg" 
+                    className="gap-2 text-base px-8 h-12 font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    Ver Dashboard
+                    <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  </Button>
+                </Link>
+                <a 
+                  href="#capacidades"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-2 py-1"
+                >
+                  Conocer capacidades
+                  <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                </a>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Features Section */}
-      <section id="caracteristicas" className="py-20 px-6">
-        <div className="container mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Tecnologia de Vanguardia
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Combinamos modelos de Machine Learning con IA explicable para tomar decisiones 
-              informadas sobre el consumo energetico.
-            </p>
+        {/* Metrics Bar */}
+        <section className="py-12 px-6 border-y border-border/40 bg-secondary/30" aria-labelledby="metrics-heading">
+          <h2 id="metrics-heading" className="sr-only">Metricas principales</h2>
+          <div className="container mx-auto">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+              {metrics.map((metric, index) => (
+                <div key={index} className="text-center lg:text-left">
+                  <div className="flex items-baseline justify-center lg:justify-start gap-1.5 mb-1">
+                    <span className="text-3xl md:text-4xl font-bold tracking-tight tabular-nums">
+                      {metric.value}
+                    </span>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {metric.unit}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {metric.description}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
+        </section>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <div
-                key={index}
-                className="stat-card"
-              >
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
+        {/* Capabilities Section */}
+        <section id="capacidades" className="py-24 px-6 scroll-mt-20" aria-labelledby="capabilities-heading">
+          <div className="container mx-auto max-w-6xl">
+            <header className="max-w-2xl mb-16">
+              <h2 id="capabilities-heading" className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+                Capacidades del Sistema
+              </h2>
+              <p className="text-lg text-muted-foreground text-pretty">
+                Cuatro pilares tecnologicos que transforman datos de consumo en 
+                decisiones estrategicas de ahorro energetico.
+              </p>
+            </header>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {capabilities.map((capability, index) => (
+                <article 
+                  key={index}
+                  className="group relative p-6 rounded-xl border border-border bg-card hover:border-primary/30 transition-colors focus-within:ring-2 focus-within:ring-ring"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center" aria-hidden="true">
+                      <capability.icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <h3 className="text-base font-semibold">{capability.title}</h3>
+                        <div className="flex-shrink-0 text-right">
+                          <span className="text-lg font-bold tabular-nums text-primary">
+                            {capability.metric}
+                          </span>
+                          <span className="block text-[11px] text-muted-foreground uppercase tracking-wide">
+                            {capability.metricLabel}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {capability.description}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Map Section */}
+        <section id="mapa" className="py-24 px-6 bg-secondary/20 scroll-mt-20" aria-labelledby="map-heading">
+          <div className="container mx-auto max-w-6xl">
+            <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
+              <div>
+                <h2 id="map-heading" className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
+                  Cobertura Regional
+                </h2>
+                <p className="text-muted-foreground">
+                  Monitoreo en tiempo real de las 4 sedes universitarias en Boyaca
+                </p>
               </div>
-            ))}
+              <Link to="/dashboard">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-2 focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  Ver detalles por sede
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                </Button>
+              </Link>
+            </header>
+            
+            <div 
+              className="w-full h-[480px] md:h-[540px] rounded-xl overflow-hidden border border-border shadow-2xl shadow-black/20"
+              role="img"
+              aria-label="Mapa interactivo de las sedes UPTC en Boyaca con indicadores de consumo energetico"
+            >
+              <MapaSedes className="w-full h-full" />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-6">
-        <div className="container mx-auto">
-          <div className="stat-card text-center py-16">
-            <h2 className="text-3xl font-bold mb-4">
-              Comienza a reducir tu huella de carbono
+        {/* Team Section */}
+        <section id="equipo" className="py-24 px-6" aria-labelledby="team-heading">
+          <div className="container mx-auto max-w-4xl">
+            <header className="text-center mb-16">
+              <h2 id="team-heading" className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+                Equipo de Desarrollo
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Estudiantes de Ingenieria de Sistemas de la San Buenaventura de Cali comprometidos con la innovacion y la sostenibilidad
+              </p>
+            </header>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+              {teamMembers.map((member, index) => (
+                <a
+                  key={index}
+                  href={`https://www.linkedin.com/in/${member.linkedin}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex flex-col items-center text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl p-4 -m-4 transition-colors hover:bg-secondary/50"
+                  aria-label={`Ver perfil de LinkedIn de ${member.name}`}
+                >
+                  {/* Avatar with initials */}
+                  <div className="relative mb-4">
+                    <div className={`w-24 h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-br ${member.color} flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300`}>
+                      <span className="text-2xl md:text-3xl font-bold text-white">
+                        {member.initials}
+                      </span>
+                    </div>
+                    {/* LinkedIn badge */}
+                    <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#0A66C2] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                      <Linkedin className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                  
+                  {/* Name */}
+                  <h3 className="font-semibold text-sm md:text-base group-hover:text-primary transition-colors">
+                    {member.name}
+                  </h3>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-24 px-6 bg-secondary/20" aria-labelledby="cta-heading">
+          <div className="container mx-auto max-w-3xl text-center">
+            <h2 id="cta-heading" className="text-2xl md:text-3xl font-bold tracking-tight mb-4">
+              Inicia el monitoreo de tu sede
             </h2>
             <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-              Accede al dashboard para visualizar metricas en tiempo real, 
-              predicciones y recomendaciones personalizadas.
+              Accede al dashboard para visualizar consumo en tiempo real, 
+              revisar predicciones y actuar sobre las recomendaciones de optimizacion.
             </p>
             <Link to="/dashboard">
-              <Button size="lg" className="gap-2">
+              <Button 
+                size="lg" 
+                className="gap-2 font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
                 Acceder al Dashboard
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </Button>
             </Link>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
       {/* Footer */}
-      <footer className="py-8 px-6 border-t border-border">
-        <div className="container mx-auto text-center text-muted-foreground text-sm">
-          <p>Universidad Pedagogica y Tecnologica de Colombia - UPTC</p>
-          <p className="mt-2">Plataforma de Gestion Energetica Inteligente</p>
+      <footer className="py-8 px-6 border-t border-border" role="contentinfo">
+        <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            Universidad Pedagogica y Tecnologica de Colombia
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Plataforma de Gestion Energetica Inteligente
+          </p>
         </div>
       </footer>
     </div>

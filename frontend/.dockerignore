@@ -1,0 +1,39 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build outputs
+dist
+build
+
+# Testing
+coverage
+
+# Development
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.log
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (not needed in container)
+*.md
+!README.md
+
+# Git
+.git
+.gitignore
+
+# Bun lockfile (we use npm)
+bun.lockb
