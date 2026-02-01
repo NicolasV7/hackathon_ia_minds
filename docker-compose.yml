@@ -1,25 +1,21 @@
-# UPTC EcoEnergy - SQLite Version (Simplified)
-# No PostgreSQL required - uses SQLite with automatic data loading
-
 version: '3.8'
 
 services:
-  # FastAPI Backend with SQLite
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      args:
-        OPENAI_API_KEY: "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"
     container_name: uptc_backend
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: "sqlite+aiosqlite:////app/data/uptc_energy.db"
-      DEBUG: "false"
-      CORS_ORIGINS_STR: "*"
-      OPENAI_API_KEY: "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"
+      DATABASE_URL: ${DATABASE_URL}
+      DEBUG: ${DEBUG}
+      CORS_ORIGINS_STR: ${CORS_ORIGINS_STR}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     volumes:
       - sqlite_data:/app/data
-      - ./consumos_uptc_hackday:/app/data/csv:ro
+      - ./datasets:/app/data/csv:ro
     ports:
       - "8000:8000"
     networks:
@@ -44,14 +40,15 @@ services:
         delay: 5s
         max_attempts: 3
 
-  # Vite + React Frontend (Dev Server)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
       args:
-        VITE_API_URL: "http://77.42.26.173:8000"
+        VITE_API_URL: ${VITE_API_URL}
     container_name: uptc_frontend
+    env_file:
+      - .env
     ports:
       - "8080:8080"
     networks:
@@ -75,17 +72,16 @@ services:
           cpus: '0.25'
           memory: 256M
 
-  # Telegram Bot
   telegram-bot:
     build:
-      context: ./telegram_bot
+      context: ./telegram-bot
       dockerfile: Dockerfile
-      args:
-        OPENAI_API_KEY: "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"
     container_name: uptc_telegram_bot
+    env_file:
+      - .env
     environment:
-      OPENAI_API_KEY: "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"
-      TELEGRAM_BOT_TOKEN: "8343621647:AAEE5OROMpUI2nOG5aA3YMuttg-zNwWteHM"
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       API_BASE_URL: http://backend:8000/api/v1
     networks:
       - uptc_network

@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
         await init_db()
         logger.info("Database initialized")
     
-    # Load ML models (CO2 and Energy models from newmodels/)
+    # Load ML models (CO2 and Energy models from models/)
     try:
         from pathlib import Path
         from app.ml.inference import ml_service

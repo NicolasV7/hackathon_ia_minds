@@ -41,7 +41,7 @@ class MLService:
     Handles CO2 and Energy predictions with proper preprocessing.
     """
     
-    def __init__(self, models_path: str = "newmodels"):
+    def __init__(self, models_path: str = "models"):
         """
         Initialize ML service.
         

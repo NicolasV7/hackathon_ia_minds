@@ -199,12 +199,12 @@ hackathon_ia_minds/
 │   ├── package.json
 │   └── index.html
 │
-├── consumos_uptc_hackday/            # 📊 Dataset original
+├── datasets/            # 📊 Dataset original
 │   ├── consumos_uptc.csv            # 275k registros horarios
 │   ├── sedes_uptc.csv               # Info de 4 sedes
 │   └── CODEBOOK_UPTC.md             # Diccionario de datos
 │
-├── newmodels/                        # 📋 Documentación de modelos
+├── models/                        # 📋 Documentación de modelos
 │   ├── documentacion_backend.json
 │   └── modelo_energia_B2_info.json
 │

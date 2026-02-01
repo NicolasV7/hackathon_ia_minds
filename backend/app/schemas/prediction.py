@@ -1,6 +1,6 @@
 """
 Prediction schemas for CO2 and Energy models.
-Updated to support new ML models from newmodels/ folder.
+Updated to support new ML models from models/ folder.
 """
 from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 from datetime import datetime

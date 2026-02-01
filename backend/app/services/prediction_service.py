@@ -1,6 +1,6 @@
 """
 Prediction service for CO2 and Energy consumption forecasting.
-Updated to use new ML models from newmodels/ folder.
+Updated to use new ML models from models/ folder.
 """
 
 from typing import List, Optional, Dict
