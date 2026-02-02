@@ -28,7 +28,7 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.CORS_ORIGINS_STR.split(",") if origin.strip()]
     
     # ML Models - Nuevos modelos de predicción (ruta absoluta para Docker)
-    ML_MODELS_PATH: str = "/app/newmodels"
+    ML_MODELS_PATH: str = "/app/models"
     
     # Archivos de modelos
     MODEL_CO2_FILE: str = "modelo_co2.pkl"
