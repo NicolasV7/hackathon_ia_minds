@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-COPY requirements.txt .
+COPY backend/requirements.txt .
 
 # Create virtual environment and install dependencies
 RUN python -m venv /opt/venv
@@ -43,12 +43,10 @@ COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy application code
-COPY --chown=appuser:appgroup ./app ./app
-COPY --chown=appuser:appgroup ./ml_models ./ml_models
-COPY --chown=appuser:appgroup ./scripts ./scripts
-
-# Copy new ML models (CO2 and Energy prediction models)
-COPY --chown=appuser:appgroup ./models ./models
+COPY --chown=appuser:appgroup backend/app ./app
+COPY --chown=appuser:appgroup backend/ml_models ./ml_models
+COPY --chown=appuser:appgroup backend/scripts ./scripts
+COPY --chown=appuser:appgroup models ./models
 
 # Create data directory with proper permissions
 RUN mkdir -p /app/data && chmod 777 /app/data
