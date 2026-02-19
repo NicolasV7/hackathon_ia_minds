@@ -46,6 +46,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY --chown=appuser:appgroup backend/app ./app
 COPY --chown=appuser:appgroup backend/ml_models ./ml_models
 COPY --chown=appuser:appgroup backend/scripts ./scripts
+
+# Copy new ML models (CO2 and Energy prediction models)
 COPY --chown=appuser:appgroup models ./models
 
 # Create data directory with proper permissions
