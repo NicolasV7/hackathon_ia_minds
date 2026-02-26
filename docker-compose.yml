@@ -1,64 +1,78 @@
-version: '3.8'
+# ============================================================================
+#  UPTC EcoEnergy - Docker Compose
+# ============================================================================
+#  Zero-config start (no .env file needed!):
+#    docker compose up -d --build
+#    Open http://localhost:8080
+#
+#  With custom config:
+#    cp .env.example .env   (edit values)
+#    docker compose up -d --build
+#
+#  With Telegram bot:
+#    docker compose --profile with-bot up -d --build
+#
+#  Useful commands:
+#    docker compose logs -f backend     # Follow backend logs
+#    docker compose restart backend     # Restart a single service
+#    docker compose down -v             # Stop & remove volumes (reset DB)
+# ============================================================================
 
 services:
+  # --------------------------------------------------------------------------
+  #  Backend - FastAPI + ML Models
+  # --------------------------------------------------------------------------
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    container_name: uptc_backend
-    env_file:
-      - .env
+    container_name: uptc-backend
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      DEBUG: ${DEBUG}
-      CORS_ORIGINS_STR: ${CORS_ORIGINS_STR}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///app/data/uptc_energy.db}
+      - DEBUG=${DEBUG:-true}
+      - CORS_ORIGINS_STR=${CORS_ORIGINS_STR:-http://localhost:3000,http://localhost:8080}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-3.5-turbo}
     volumes:
-      - sqlite_data:/app/data
-      - ./datasets:/app/data/csv:ro
+      - sqlite_data:/app/data              # Persistent SQLite database
+      - ./datasets:/app/data/csv:ro        # Read-only CSV data for DB init
     ports:
       - "8000:8000"
     networks:
-      - uptc_network
+      - app-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 120s
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 2G
-        reservations:
-          cpus: '0.5'
-          memory: 1G
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
 
+  # --------------------------------------------------------------------------
+  #  Frontend - React + Vite (served by nginx)
+  # --------------------------------------------------------------------------
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL}
-    container_name: uptc_frontend
-    env_file:
-      - .env
+        VITE_API_URL: ${VITE_API_URL:-}
+    container_name: uptc-frontend
     ports:
       - "8080:80"
     networks:
-      - uptc_network
+      - app-network
     restart: unless-stopped
     depends_on:
       backend:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -66,25 +80,24 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
+          cpus: "0.5"
           memory: 256M
 
+  # --------------------------------------------------------------------------
+  #  Telegram Bot (optional - activate with: --profile with-bot)
+  # --------------------------------------------------------------------------
   telegram-bot:
     build:
       context: ./telegram-bot
       dockerfile: Dockerfile
-    container_name: uptc_telegram_bot
-    env_file:
-      - .env
+    container_name: uptc-telegram-bot
     environment:
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      API_BASE_URL: http://backend:8000/api/v1
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-3.5-turbo}
+      - API_BASE_URL=http://backend:8000/api/v1
     networks:
-      - uptc_network
+      - app-network
     restart: unless-stopped
     depends_on:
       backend:
@@ -92,18 +105,19 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 256M
-        reservations:
-          cpus: '0.1'
-          memory: 128M
-    command: ["python", "app.py"]
+    profiles:
+      - with-bot
 
+# ----------------------------------------------------------------------------
+#  Volumes & Networks
+# ----------------------------------------------------------------------------
 volumes:
   sqlite_data:
-    name: uptc_sqlite_data
+    name: uptc-sqlite-data
 
 networks:
-  uptc_network:
-    name: uptc_network
+  app-network:
+    name: uptc-network
     driver: bridge

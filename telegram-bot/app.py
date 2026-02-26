@@ -124,10 +124,12 @@ async def call_chatgpt(user_text: str) -> str:
     messages = build_system_prompt()
     messages.append({"role": "user", "content": user_text})
 
+    model_name = os.environ.get("OPENAI_MODEL", "gpt-3.5-turbo")
+
     def sync_call():
         try:
             resp = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model=model_name,
                 messages=messages,
                 temperature=0.2,
                 max_tokens=500,
@@ -281,8 +283,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 def main() -> None:
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
-        logger.error("Environment variable TELEGRAM_BOT_TOKEN is not set.")
-        raise SystemExit("Set TELEGRAM_BOT_TOKEN and retry.")
+        logger.warning("TELEGRAM_BOT_TOKEN is not set. Bot is idle. Set the token and restart to activate.")
+        # Stay alive without doing anything (avoids container restart loops)
+        import time
+        while True:
+            time.sleep(3600)
 
     app = ApplicationBuilder().token(token).build()
 

@@ -5,6 +5,7 @@ Script de inicialización de SQLite - Crea tablas y carga datos desde CSV
 
 import asyncio
 import logging
+import os
 from pathlib import Path
 import pandas as pd
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,8 +17,8 @@ from app.models.consumption import ConsumptionRecord
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Path al CSV
-CSV_PATH = Path("/app/data/csv/consumos_uptc.csv")
+# Path al CSV (configurable via env var for running outside Docker)
+CSV_PATH = Path(os.environ.get("CSV_PATH", "/app/data/csv/consumos_uptc.csv"))
 BATCH_SIZE = 5000
 
 

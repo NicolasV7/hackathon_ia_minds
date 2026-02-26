@@ -201,8 +201,11 @@ Responde en formato JSON con esta estructura:
   ]
 }}"""
 
+            from app.core.config import get_settings
+            _settings = get_settings()
+            
             completion = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=_settings.OPENAI_MODEL,
                 messages=[
                     {
                         "role": "system", 

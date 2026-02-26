@@ -1,329 +1,387 @@
-# 🌍 UPTC EcoEnergy - Sistema de Monitoreo y Optimización Energética
-
 <div align="center">
 
-**Plataforma inteligente para monitoreo, análisis y optimización del consumo energético y de agua en la Universidad Pedagógica y Tecnológica de Colombia (UPTC).**
+# UPTC EcoEnergy
 
-[Características](#características) • [Instalación](#instalación) • [Uso](#uso) • [Estructura](#estructura) • [API](#api) • [Contribuir](#contribuir)
+### AI-Powered Energy Monitoring & Optimization Platform
+
+**Real-time energy analytics, ML-based predictions, and actionable recommendations for the Universidad Pedagogica y Tecnologica de Colombia (UPTC).**
+
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://docker.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+[Quick Start](#-quick-start) &bull; [Architecture](#-architecture) &bull; [API Reference](#-api-reference) &bull; [Local Development](#-local-development) &bull; [Contributing](#-contributing)
 
 </div>
 
 ---
 
-## 📋 Descripción
+## About
 
-UPTC EcoEnergy es un sistema integral de monitoreo energético que proporciona:
+UPTC EcoEnergy is a full-stack platform that monitors and optimizes energy consumption across 4 university campuses. Built during the **HackDay IAMinds** hackathon, it combines 7+ years of historical data (275,000+ hourly records) with machine learning models to deliver:
 
-- 📊 **Análisis detallado** del consumo de energía y agua por sede y sector
-- 🤖 **Predicciones ML** basadas en historial de 7+ años de datos (2018-2025)
-- 🚨 **Detección de anomalías** en tiempo real con IA
-- 💡 **Recomendaciones automáticas** de ahorro energético
-- 🌱 **Métricas de sostenibilidad** (árboles salvados, CO₂ reducido, etc.)
-- 💬 **Chatbot asistente** con IA para consultas sobre eficiencia
+- **Real-time dashboards** with KPIs, consumption trends, and sector breakdowns
+- **ML predictions** for energy and CO2 emissions using LightGBM and Ridge models
+- **Anomaly detection** with Isolation Forest to flag unusual consumption patterns
+- **AI-powered recommendations** via OpenAI for actionable energy savings
+- **SHAP explainability** to understand what drives model predictions
+- **Telegram bot** for on-the-go access to analytics and alerts
 
-### Cobertura
-- **4 sedes**: Tunja (principal), Duitama, Sogamoso, Chiquinquirá
-- **5 sectores**: Comedores, Salones, Laboratorios, Auditorios, Oficinas
-- **Datos históricos**: 275,000+ registros horarios (2018-2025)
-- **Granularidad**: Horaria en tiempo real
+### Campus Coverage
 
----
-
-## ✨ Características Principales
-
-### 🔍 Dashboard Analítico
-- **Distribución de consumo** por sector y sede en tiempo real
-- **Patrones horarios** de uso de energía durante el día
-- **Correlaciones** entre variables (energía, agua, temperatura)
-- **Análisis de Pareto** para identificar las mayores fuentes de desperdicio
-- **Comparativas** entre períodos académicos y vacaciones
-
-### 🧠 Machine Learning
-- **XGBoost & Scikit-learn** para predicción de consumo
-- **Modelos entrenados** con 7 años de historial (18,000+ estudiantes en Tunja)
-- **Precisión de predicción**: R² > 0.85 en validación
-- **Detección de anomalías** con Isolation Forest
-- **SHAP values** para explicabilidad de modelos
-
-### 💾 Base de Datos
-- **SQLite optimizado** para consultas de series de tiempo
-- **Índices compuestos** para filtrado rápido por sede + fecha
-- **Columnas normalizadas** para agua (litros), energía (kWh), CO₂ (kg)
-- **Metadatos temporales**: hora, día, período académico, festivos
-
-### 🔐 API REST
-- **FastAPI** con documentación Swagger automática
-- **Endpoints** para analytics, predicciones, recomendaciones, anomalías
-- **Autenticación** preparada para OAuth2
-- **Rate limiting** y validación de entrada
-
-### 🎨 Frontend Moderno
-- **React + TypeScript** para máxima confiabilidad
-- **Vite** para desarrollo rápido (HMR)
-- **Tailwind CSS + shadcn/ui** para UI profesional
-- **Recharts** para visualizaciones interactivas
-- **Responsive design** (mobile, tablet, desktop)
+| Campus | Students | Location |
+|---|---|---|
+| Tunja (Main) | ~18,000 | Boyaca, Colombia |
+| Duitama | ~5,500 | Boyaca, Colombia |
+| Sogamoso | ~6,000 | Boyaca, Colombia |
+| Chiquinquira | ~2,000 | Boyaca, Colombia |
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### Requisitos Previos
-- **Python 3.12+** (backend)
-- **Node.js 18+** (frontend)
-- **Docker & Docker Compose** (opcional)
-- **Git**
+> **Prerequisites:** [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) installed.
 
-### Instalación Local
+### 1. Clone & Run
 
-#### 1️⃣ Clonar repositorio
 ```bash
-git clone https://github.com/yourusername/hackathon_ia_minds.git
+git clone https://github.com/NicolasV7/hackathon_ia_minds.git
 cd hackathon_ia_minds
+docker compose up -d --build
 ```
 
-#### 2️⃣ Configurar Backend
+That's it. No `.env` file needed -- all defaults are built in.
+
+### 2. (Optional) Customize with `.env`
+
 ```bash
-cd backend
-
-# Crear entorno virtual
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Instalar dependencias
-pip install -r requirements.txt
-# o con Poetry:
-poetry install
-
-# Configurar variables de entorno
-cp .env.example .env
-# Editar .env con valores locales
-
-# Inicializar base de datos
-python scripts/init_sqlite.py
-
-# Iniciar servidor
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+cp .env.example .env   # edit values you want to change
+docker compose up -d --build
 ```
 
-#### 3️⃣ Configurar Frontend
+### 3. Access the App
+
+| Service | URL | Description |
+|---|---|---|
+| **Frontend** | [http://localhost:8080](http://localhost:8080) | React dashboard |
+| **API** | [http://localhost:8000](http://localhost:8000) | FastAPI backend |
+| **API Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) | Swagger UI (when `DEBUG=true`) |
+| **Health Check** | [http://localhost:8000/health](http://localhost:8000/health) | Service status |
+
+### Optional: Enable the Telegram Bot
+
 ```bash
-cd frontend
-
-# Instalar dependencias
-npm install
-# o con bun:
-bun install
-
-# Iniciar servidor de desarrollo
-npm run dev
-# Accesible en: http://localhost:5173
+# Set your bot token in .env first, then:
+docker compose --profile with-bot up -d --build
 ```
 
+### Useful Commands
 
-## 📁 Estructura del Proyecto
+```bash
+# View logs
+docker compose logs -f backend
+
+# Restart a single service
+docker compose restart backend
+
+# Stop everything
+docker compose down
+
+# Stop & remove data (reset database)
+docker compose down -v
+```
+
+---
+
+## Architecture
+
+```
+                    +-------------------+
+                    |   Users / Browser |
+                    +--------+----------+
+                             |
+                    +--------v----------+
+                    |  Frontend (nginx) |  :8080
+                    |  React + Vite     |
+                    +--------+----------+
+                             |
+                    /api/ proxy (nginx)
+                             |
+                    +--------v----------+
+                    |  Backend (FastAPI) |  :8000
+                    |  + ML Models      |
+                    |  + SQLite DB      |
+                    +--------+----------+
+                             |
+                    +--------v----------+
+                    |  Telegram Bot     |  (optional)
+                    |  python-telegram  |
+                    +-------------------+
+```
+
+### Tech Stack
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| **Frontend** | React 18, TypeScript, Vite | Single-page application |
+| **UI** | Tailwind CSS, shadcn/ui, Recharts | Design system & data visualization |
+| **Maps** | Leaflet, MapLibre GL | Campus geospatial visualization |
+| **Backend** | FastAPI, SQLAlchemy (async) | REST API & business logic |
+| **ML** | scikit-learn, XGBoost, LightGBM | Prediction & anomaly detection |
+| **Database** | SQLite (aiosqlite) | Time-series consumption data |
+| **AI** | OpenAI GPT (optional) | Chat assistant & smart recommendations |
+| **Bot** | python-telegram-bot | Telegram integration |
+| **Infra** | Docker, nginx | Containerization & reverse proxy |
+
+---
+
+## Project Structure
 
 ```
 hackathon_ia_minds/
-├── backend/                          # 🔷 FastAPI Backend
-│   ├── app/
-│   │   ├── main.py                  # Punto de entrada
-│   │   ├── api/
-│   │   │   └── v1/
-│   │   │       ├── endpoints/
-│   │   │       │   ├── analytics.py      # Dashboard KPIs
-│   │   │       │   ├── predictions.py    # Predicciones ML
-│   │   │       │   ├── anomalies.py      # Detección de anomalías
-│   │   │       │   ├── recommendations.py # Recomendaciones IA
-│   │   │       │   ├── optimization.py   # Oportunidades de ahorro
-│   │   │       │   └── chat.py           # Chatbot asistente
-│   │   │       └── router.py
-│   │   ├── core/
-│   │   │   ├── config.py            # Configuración (env vars)
-│   │   │   ├── database.py          # Conexión SQLite + SQLAlchemy
-│   │   │   ├── dependencies.py      # inyecciones de dependencia
-│   │   │   └── websocket.py         # WebSocket para updates
-│   │   ├── models/                  # Modelos SQLAlchemy ORM
-│   │   │   ├── consumption.py       # Registros de consumo
-│   │   │   ├── prediction.py        # Predicciones guardadas
-│   │   │   ├── anomaly.py           # Anomalías detectadas
-│   │   │   └── recommendation.py    # Recomendaciones
-│   │   ├── schemas/                 # Esquemas Pydantic
-│   │   ├── repositories/            # Patrón Repository
-│   │   ├── services/                # Lógica de negocio
-│   │   │   ├── analytics_service.py
-│   │   │   ├── prediction_service.py
-│   │   │   └── ml_service.py
-│   │   └── ml/                      # Modelos & ML utilities
-│   │       ├── inference.py         # Cargar y usar modelos
-│   │       ├── models/              # Modelos XGBoost guardados
-│   │       └── features.py          # Engineering de features
-│   ├── scripts/
-│   │   └── init_sqlite.py           # Inicializar BD
-│   ├── ml_models/                   # Modelos entrenados (.joblib)
-│   │   ├── energy_predictor.joblib
-│   │   └── anomaly_detector.joblib
-│   ├── requirements.txt
-│   ├── pyproject.toml
-│   ├── Dockerfile
-│   └── .env.example
-│
-├── frontend/                         # ⚛️ React + TypeScript
-│   ├── src/
-│   │   ├── main.tsx                 # Entry point
-│   │   ├── App.tsx                  # Root component
-│   │   ├── pages/
-│   │   │   ├── Index.tsx            # Landing page
-│   │   │   ├── LandingPage.tsx      # Presentación
-│   │   │   ├── dashboard/
-│   │   │   │   ├── AnalyticsPage.tsx    # Dashboard principal
-│   │   │   │   ├── PredictionsPage.tsx  # Predicciones
-│   │   │   │   ├── AnomaliesPage.tsx    # Alertas de anomalías
-│   │   │   │   └── RecommendationsPage.tsx
-│   │   │   └── NotFound.tsx
-│   │   ├── components/
-│   │   │   ├── Chatbot.tsx          # Chat asistente
-│   │   │   ├── NavLink.tsx
-│   │   │   ├── dashboard/           # Componentes del dashboard
-│   │   │   ├── landing/             # Componentes de inicio
-│   │   │   └── ui/                  # shadcn/ui components
-│   │   ├── services/
-│   │   │   └── api.ts               # Cliente HTTP a backend
-│   │   ├── hooks/                   # Custom React hooks
-│   │   └── lib/
-│   │       └── utils.ts
-│   ├── public/                      # Assets estáticos
-│   ├── Dockerfile
-│   ├── vite.config.ts
-│   ├── tailwind.config.ts
-│   ├── package.json
-│   └── index.html
-│
-├── datasets/            # 📊 Dataset original
-│   ├── consumos_uptc.csv            # 275k registros horarios
-│   ├── sedes_uptc.csv               # Info de 4 sedes
-│   └── CODEBOOK_UPTC.md             # Diccionario de datos
-│
-├── models/                        # 📋 Documentación de modelos
-│   ├── documentacion_backend.json
-│   └── modelo_energia_B2_info.json
-│
-├── telegram_bot/                     # 🤖 Bot Telegram (opcional)
-│   ├── app.py
-│   ├── Dockerfile
-│   └── requirements.txt
-│
-├── docker-compose.yml               # Orquestación de servicios
-├── .env.example                     # Template de variables
-└── README.md                        # Este archivo
+|
++-- backend/                      # FastAPI backend
+|   +-- app/
+|   |   +-- main.py               # Application entry point
+|   |   +-- api/v1/endpoints/     # REST endpoints (11 modules)
+|   |   +-- core/                 # Config, database, dependencies
+|   |   +-- ml/                   # ML inference, features, anomaly detection
+|   |   +-- models/               # SQLAlchemy ORM models
+|   |   +-- schemas/              # Pydantic request/response schemas
+|   |   +-- repositories/         # Data access layer
+|   |   +-- services/             # Business logic layer
+|   +-- ml_models/                # Serialized models (.joblib)
+|   +-- scripts/                  # DB init & data loading
+|   +-- Dockerfile
+|   +-- requirements.txt
+|
++-- frontend/                     # React SPA
+|   +-- src/
+|   |   +-- pages/                # Route pages (dashboard, analytics, etc.)
+|   |   +-- components/           # UI components + shadcn/ui
+|   |   +-- services/api.ts       # API client with fallback mock data
+|   |   +-- hooks/                # Custom React hooks
+|   +-- nginx.conf                # Production reverse proxy config
+|   +-- Dockerfile
+|   +-- package.json
+|
++-- telegram-bot/                 # Telegram bot (optional)
+|   +-- app.py                    # Bot entry point
+|   +-- Dockerfile
+|   +-- requirements.txt
+|
++-- models/                       # Trained ML model artifacts (.pkl)
++-- datasets/                     # Source CSV data (275K+ records)
++-- docker-compose.yml            # Service orchestration
++-- .env.example                  # Environment variable template
 ```
 
 ---
 
-## 🔌 API Endpoints
+## Environment Variables
 
-### Dashboard URL
-```
-http://77.42.26.173:8080/
-```
+All configuration is done through a single `.env` file. See [`.env.example`](.env.example) for the full template with descriptions.
 
-### 📊 Analytics
-```
-GET    /analytics/dashboard/{sede}              # KPIs por sede
-GET    /analytics/consumption/sectors/{sede}    # Desglose por sector
-GET    /analytics/patterns/hourly/{sede}        # Patrones horarios
-GET    /analytics/correlations/{sede}           # Correlaciones
-GET    /analytics/academic-periods              # Por período escolar
-```
+**All variables are optional.** The app works out of the box with zero configuration.
 
-### 🔮 Predicciones
-```
-POST   /predictions/                            # Crear predicción
-GET    /predictions/?sede=tunja                 # Listar predicciones
-GET    /predictions/{id}                        # Detalle predicción
-GET    /models/metrics                          # Métricas de modelos
-```
-
-### 🚨 Anomalías
-```
-GET    /anomalies/                              # Listar anomalías activas
-POST   /anomalies/                              # Reportar anomalía
-PATCH  /anomalies/{id}/status                   # Cambiar estado
-```
-
-### 💡 Recomendaciones
-```
-GET    /recommendations/sede/{sede}             # Por sede
-POST   /recommendations/generate                # Generar nuevas
-PATCH  /recommendations/{id}/status             # Cambiar estado
-POST   /recommendations/ai-generate             # Con IA (GPT-4)
-```
-
-### 🌱 Optimización
-```
-GET    /optimization/opportunities              # Oportunidades de ahorro
-GET    /optimization/savings-projection         # Proyección de ahorros
-GET    /optimization/sustainability             # Métricas verdes
-GET    /optimization/pareto                     # Análisis Pareto
-```
-
-### 💬 Chat IA
-```
-POST   /chat                                    # Enviar mensaje
-```
-
-### ✅ Health
-```
-GET    /health                                  # Estado del servidor
-```
-
-### 📚 Documentación interactiva
-```
-http://localhost:8000/docs                      # Swagger UI
-http://localhost:8000/redoc                     # ReDoc
-```
-
-## 🤖 Modelos ML
-
-### 🎯 Predictor de Energía
-- **Algoritmo**: XGBoost Regressor
-- **Features**: 40+ features de contexto temporal, ocupación, historial
-- **Precisión**: R² = 0.87, RMSE = 2.3 kWh
-- **Horizonte**: Predicción 24h a 7 días
-- **Reentrenamiento**: Automático cada 7 días
-
-### 🚨 Detector de Anomalías
-- **Algoritmo**: Isolation Forest
-- **Entrada**: Valor actual vs. histórico
-- **Sensibilidad**: Configurable (bajo/medio/alto)
-- **Latencia**: <100ms
-
-### 📊 Recomendador IA
-- **Motor**: GPT-4 + Context Engineering
-- **Entrada**: Métricas de consumo + Oportunidades detectadas
-- **Salida**: 3-5 recomendaciones priorizadas
-- **ROI estimado**: Calculado por oportunidad
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_URL` | `sqlite+aiosqlite:///app/data/uptc_energy.db` | Database connection string |
+| `DEBUG` | `true` | Enables Swagger docs, verbose logging, auto DB init |
+| `CORS_ORIGINS_STR` | `http://localhost:3000,http://localhost:8080` | Allowed CORS origins (comma-separated) |
+| `OPENAI_API_KEY` | _(empty)_ | Enables AI chat & smart recommendations. Without it, AI features return local fallback responses |
+| `OPENAI_MODEL` | `gpt-3.5-turbo` | OpenAI model to use (e.g., `gpt-4o-mini`, `gpt-4o`) |
+| `VITE_API_URL` | _(empty)_ | Frontend API URL. Leave empty for Docker (nginx proxy handles it) |
+| `TELEGRAM_BOT_TOKEN` | _(empty)_ | Telegram bot token from [@BotFather](https://t.me/BotFather). Without it, the bot stays idle |
 
 ---
 
-## 📝 Licencia
+## API Reference
 
-Este proyecto está licenciado bajo la licencia MIT. Ver archivo [LICENSE](LICENSE) para más detalles.
+Base URL: `http://localhost:8000/api/v1`
+
+### Analytics
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/analytics/dashboard/{sede}` | Dashboard KPIs by campus |
+| `GET` | `/analytics/consumption/sectors/{sede}` | Consumption breakdown by sector |
+| `GET` | `/analytics/patterns/hourly/{sede}` | Hourly consumption patterns |
+| `GET` | `/analytics/correlations/{sede}` | Variable correlations matrix |
+| `GET` | `/analytics/academic-periods` | Consumption by academic period |
+
+### Predictions
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/predictions/` | Create a new prediction |
+| `POST` | `/predictions/batch` | Batch prediction (multi-hour horizon) |
+| `GET` | `/predictions/sede/{sede}` | Get predictions by campus |
+| `GET` | `/models/metrics` | ML model performance metrics |
+
+### Anomalies
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/anomalies/` | List detected anomalies |
+| `POST` | `/anomalies/detect` | Run anomaly detection |
+| `PATCH` | `/anomalies/{id}/status` | Update anomaly status |
+
+### Recommendations
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/recommendations/sede/{sede}` | Get recommendations by campus |
+| `POST` | `/recommendations/generate` | Generate rule-based recommendations |
+| `POST` | `/recommendations/ai-generate` | Generate AI-powered recommendations |
+
+### Optimization
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/optimization/opportunities` | Energy saving opportunities |
+| `GET` | `/optimization/savings-projection` | Projected savings waterfall |
+| `GET` | `/optimization/sustainability` | Green metrics (trees saved, CO2 reduced) |
+| `GET` | `/optimization/pareto` | Pareto analysis of waste sources |
+
+### Explainability
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/explainability/shap/{variable}` | SHAP feature importance values |
+| `GET` | `/explainability/confidence` | Model confidence scores |
+
+### Chat & Utilities
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/chat` | Send message to AI assistant |
+| `GET` | `/sedes` | List all campus information |
+| `GET` | `/health` | Health check (root level) |
+
+> Interactive documentation available at [http://localhost:8000/docs](http://localhost:8000/docs) when `DEBUG=true`.
 
 ---
 
-## 👥 Autores & Créditos
+## ML Models
 
-**HackDay IAMinds Team** - Equipo de desarrollo para Hackathon de IA y Eficiencia Energética
+The platform uses a **two-stage prediction pipeline**:
 
-### Stack Principal
-- **Backend**: FastAPI, SQLAlchemy, XGBoost
-- **Frontend**: React, TypeScript, Tailwind CSS
-- **ML**: scikit-learn, pandas, numpy
-- **DB**: SQLite (dev), PostgreSQL + TimescaleDB (prod)
-- **Deploy**: Docker, Docker Compose
+### Stage 1: CO2 Prediction
+- **Algorithm:** LightGBM Regressor
+- **Features:** 33 temporal & contextual features
+- **Output:** Predicted CO2 emissions (kg)
+
+### Stage 2: Energy Prediction
+- **Algorithm:** Ridge Regression
+- **Features:** 35 features (including predicted CO2 from Stage 1)
+- **Output:** Predicted energy consumption (kWh)
+
+### Anomaly Detection
+- **Algorithm:** Isolation Forest
+- **Input:** Consumption features vs historical baselines
+- **Sensitivity:** Configurable (low / medium / high)
+
+### Explainability
+- **SHAP values** for feature importance visualization
+- **Confidence scores** for prediction reliability
+
+Model artifacts are stored in `models/` as `.pkl` files and loaded at application startup.
 
 ---
 
+## Local Development
+
+### Backend
+
+```bash
+cd backend
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Initialize the database (loads CSV data)
+python scripts/init_sqlite.py
+
+# Start the development server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Frontend
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start dev server (http://localhost:8080)
+npm run dev
+```
+
+> Set `VITE_API_URL=http://localhost:8000` in `frontend/.env` for local development so the frontend can reach the backend directly.
+
+### Telegram Bot
+
+```bash
+cd telegram-bot
+
+pip install -r requirements.txt
+
+# Set required environment variables
+export TELEGRAM_BOT_TOKEN=your_token_here
+export OPENAI_API_KEY=your_key_here       # optional
+export API_BASE_URL=http://localhost:8000/api/v1
+
+python app.py
+```
+
+---
+
+## Docker Details
+
+The project uses **multi-stage Docker builds** for optimized production images:
+
+| Service | Base Image | Final Size | Port |
+|---|---|---|---|
+| Backend | `python:3.12-slim` | ~800MB (includes ML libs) | 8000 |
+| Frontend | `nginx:alpine` | ~30MB | 80 (mapped to 8080) |
+| Telegram Bot | `python:3.11-slim` | ~200MB | - |
+
+### How It Works
+
+1. **Backend container** starts, loads ML models from `/app/models`, and initializes the SQLite database from CSV data in the background
+2. **Frontend container** waits for backend to be healthy, then serves the React SPA via nginx, which also proxies `/api/` requests to the backend
+3. **Telegram bot** (optional, via `--profile with-bot`) connects to the backend API and Telegram servers
+
+### Data Persistence
+
+- SQLite database is stored in a Docker named volume (`uptc-sqlite-data`)
+- CSV datasets are mounted read-only from `./datasets`
+- To reset the database: `docker compose down -v && docker compose up -d`
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit your changes: `git commit -m "Add your feature"`
+4. Push to the branch: `git push origin feature/your-feature`
+5. Open a Pull Request
+
+---
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+**Built with care by the HackDay IAMinds Team**
+
+FastAPI &bull; React &bull; scikit-learn &bull; LightGBM &bull; Docker
 
 </div>

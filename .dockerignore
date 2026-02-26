@@ -1,0 +1,51 @@
+# ============================================================================
+#  Root .dockerignore - Used by backend Dockerfile (context = repo root)
+# ============================================================================
+
+# Git
+.git/
+.gitignore
+
+# IDE & OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Environment files (secrets!)
+.env
+.env.local
+.env.*.local
+
+# Frontend (not needed for backend build)
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.venv/
+venv/
+
+# Logs
+*.log
+
+# Docker
+docker-compose.yml
+.dockerignore
+
+# Documentation (not needed inside container)
+*.md
+!datasets/CODEBOOK_UPTC.md
+docs/
+
+# Agent skills & IDE config
+.agents/
+.opencode/
+skills/

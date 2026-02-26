@@ -1,20 +1,42 @@
-# Ignore all files and directories starting with a dot
-.*
-skills/
+# ============================================================================
+#  UPTC EcoEnergy - Git Ignore
+# ============================================================================
 
-# But keep these specific dot files if needed
-!.gitignore
-!.*.md
-!.dockerignore
-!.env.example
-
-# Ensure local .env is ignored
+# Environment files (may contain secrets)
 .env
+.env.local
+.env.*.local
 
-# Common ignores
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.venv/
+venv/
+
+# Node
 node_modules/
-*.log
+dist/
+
+# IDE & OS
+.idea/
+.vscode/
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
-__pycache__/
-*.pyc
+
+# Logs
+*.log
+
+# Agent skills & IDE config (local tooling)
+.agents/
+.opencode/
+skills/
+
+# Keep these dot files tracked
+!.gitignore
+!.dockerignore
+!.env.example

@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     
     # OpenAI (optional)
     OPENAI_API_KEY: str | None = None
+    OPENAI_MODEL: str = "gpt-3.5-turbo"
     
     # Pagination
     DEFAULT_PAGE_SIZE: int = 50

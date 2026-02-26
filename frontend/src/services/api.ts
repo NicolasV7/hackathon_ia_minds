@@ -1,6 +1,7 @@
 // API Configuration for FastAPI Backend
-// Use environment variable or default to production backend URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://77.42.26.173:8000';
+// In Docker: VITE_API_URL is empty and nginx proxies /api/ to the backend.
+// In local dev: set VITE_API_URL=http://localhost:8000 in your .env file.
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 const DEBUG = import.meta.env.VITE_DEBUG === 'true';
 
 // Generic fetch wrapper with error handling

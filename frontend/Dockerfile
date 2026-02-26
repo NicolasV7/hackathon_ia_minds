@@ -1,47 +1,42 @@
-# UPTC EcoEnergy Frontend - Vite + React Production Dockerfile
-# Multi-stage build for optimized deployment
+# ============================================================================
+#  UPTC EcoEnergy Frontend - Dockerfile
+#  Multi-stage build: deps -> build -> nginx production
+# ============================================================================
 
-# Stage 1: Dependencies
+# ------ Stage 1: Install Node dependencies ------
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Copy package files
 COPY package.json package-lock.json* ./
-
-# Install dependencies with legacy peer deps to handle react-leaflet conflict
 RUN npm ci --legacy-peer-deps && npm cache clean --force
 
-# Stage 2: Builder
+# ------ Stage 2: Build the React app ------
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build argument for API URL
-ARG VITE_API_URL=http://localhost:8000
+# VITE_API_URL is a build-time variable baked into the JS bundle.
+# When using Docker Compose, leave it empty — nginx proxies /api/ to backend.
+ARG VITE_API_URL=
 ENV VITE_API_URL=$VITE_API_URL
 
-# Build the application
 RUN npm run build
 
-# Stage 3: Production with nginx
+# ------ Stage 3: Serve with nginx ------
 FROM nginx:alpine AS production
 
-# Copy custom nginx config
+# Replace default nginx config with our custom SPA + API proxy config
 RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy built assets from builder
+# Copy built static files
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Expose port
 EXPOSE 80
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1
 
-# Run nginx
 CMD ["nginx", "-g", "daemon off;"]
